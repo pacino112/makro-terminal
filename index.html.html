@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Makro-Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #060A1C; --s1: #0C1230; --s2: #131B42; --line: #222B58;
+  --tx: #EAEEFF; --mu: #8E97C6; --ac: #5B8CFF;
+  --z0: #EF4B5B; --z1: #F2913D; --z2: #D8C56A; --z3: #46D39A; --z4: #12E6C1;
+  --disp: 'Unbounded', 'Manrope', sans-serif; --body: 'Manrope', system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0; min-height: 100vh; color: var(--tx); font: 500 15px/1.5 var(--body); font-variant-numeric: tabular-nums;
+  background: radial-gradient(1.5px 1.5px at 23px 41px, rgba(190, 202, 255, .7) 50%, transparent 52%) 0 0 / 241px 241px, radial-gradient(1px 1px at 131px 87px, rgba(190, 202, 255, .55) 50%, transparent 52%) 0 0 / 241px 241px, radial-gradient(1px 1px at 201px 173px, rgba(190, 202, 255, .45) 50%, transparent 52%) 0 0 / 241px 241px, radial-gradient(1.5px 1.5px at 77px 211px, rgba(190, 202, 255, .5) 50%, transparent 52%) 0 0 / 337px 337px, radial-gradient(1px 1px at 289px 59px, rgba(190, 202, 255, .5) 50%, transparent 52%) 0 0 / 337px 337px, radial-gradient(1100px 520px at 78% -8%, #172266 0%, transparent 62%), var(--bg);
+}
+h1, h2 { font-family: var(--disp); font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: 16px; } h2 { font-size: 15px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--ac); outline-offset: 2px; }
+.mu { color: var(--mu); }
+
+.top { display: flex; align-items: center; gap: 28px; padding: 14px 28px; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 6; background: rgba(6, 10, 28, .86); backdrop-filter: blur(10px); }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand i { width: 26px; height: 26px; border-radius: 50%; background: #F7931A; color: #1A1200; display: grid; place-items: center; font: 700 15px var(--body); font-style: normal; }
+.tick { display: flex; align-items: baseline; gap: 12px; margin-left: auto; }
+.tick b { font: 600 20px var(--disp); }
+.up { color: var(--z3); } .down { color: var(--z0); }
+.stamp { font-size: 13px; color: var(--mu); min-width: 150px; text-align: right; }
+
+.tabs { display: flex; gap: 6px; }
+.tabs a { padding: 6px 14px; border-radius: 99px; color: var(--mu); text-decoration: none; font-weight: 600; font-size: 14px; }
+.tabs a:hover { color: var(--tx); }
+.tabs a[aria-current="page"] { color: var(--tx); background: rgba(91, 140, 255, .16); }
+.view { display: grid; gap: 18px; }
+.kos { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); align-items: start; }
+.kos p { margin: 10px 0 0; max-width: 70ch; }
+.stage { position: relative; overflow: hidden; border-radius: 12px; }
+.stage canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.stage canvas:active { cursor: grabbing; }
+#st-spiral { height: min(66vh, 680px); min-height: 380px; }
+#st-planets { height: min(48vh, 480px); min-height: 320px; }
+.labels { position: absolute; inset: 0; pointer-events: none; }
+.labels span { position: absolute; left: 0; top: 0; margin: -9px 0 0 10px; font-size: 12px; font-weight: 600; white-space: nowrap; text-shadow: 0 1px 6px var(--bg), 0 0 2px var(--bg); }
+.labels .dim { color: var(--mu); font-weight: 500; } .labels .teal { color: var(--z4); } .labels .red { color: var(--z0); }
+.labels .now { margin: 0 0 0 14px; translate: 0 -50%; padding: 4px 10px 5px; border-radius: 9px; background: rgba(6, 10, 28, .78); border: 1px solid var(--line); text-shadow: none; line-height: 1.35; }
+.labels .now b { display: block; font-size: 13px; font-weight: 700; } .labels .now i { display: block; font-style: normal; color: var(--mu); }
+.labels .yr { font-size: 11px; font-weight: 500; color: var(--mu); }
+.labels .sun { margin: 0; translate: -50% -50%; font: 600 19px var(--disp); color: #04142A; text-shadow: none; }
+ .labels .up { margin-top: -27px; } .labels .left { margin-left: -10px; translate: -100% 0; } .labels .end { margin: -24px 0 0; translate: -100% 0; }
+.labels .conj { margin: 0; translate: -50% 0; font: 600 15px var(--disp); color: var(--z4); }
+.stage.off { display: grid; place-items: center; } .stage.off canvas { display: none; }
+.stage.off .labels { position: static; color: var(--mu); padding: 20px; text-align: center; max-width: 46ch; }
+.k-score { display: flex; align-items: center; gap: 16px; margin: 14px 0 12px; }
+.k-score b { font: 600 42px/1 var(--disp); }
+.k-score span { display: block; } .k-score .zone { margin: 0; font-size: 17px; }
+.k-list { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.k-list div { border-top: 3px solid var(--c); padding-top: 6px; font-size: 12.5px; color: var(--mu); }
+.k-list b { display: block; color: var(--tx); font: 600 17px var(--disp); }
+.tm { position: sticky; bottom: 0; z-index: 5; display: flex; align-items: center; gap: 10px; padding: 10px 28px; background: rgba(8, 12, 34, .93); backdrop-filter: blur(10px); border-top: 1px solid var(--line); }
+.tm button { border: 1px solid var(--line); background: var(--s2); border-radius: 99px; padding: 7px 14px; font-weight: 600; font-size: 13.5px; }
+.tm button:hover { border-color: var(--ac); }
+.tm .rb { width: 36px; height: 36px; padding: 0; font-size: 15px; }
+.tm-track { flex: 1; min-width: 120px; position: relative; padding-bottom: 15px; }
+.tm input[type=range] { -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 10px; margin: 9px 0 0; border-radius: 6px; background: var(--line); cursor: pointer; }
+.tm input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 3px solid var(--bg); box-shadow: 0 0 0 1.5px #fff; }
+.tm input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 3px solid var(--bg); box-shadow: 0 0 0 1.5px #fff; }
+.tm-years { position: absolute; left: 9px; right: 9px; bottom: -2px; height: 14px; font-size: 11px; color: var(--mu); pointer-events: none; }
+.tm-years span { position: absolute; translate: -50% 0; }
+.tm-date { min-width: 250px; line-height: 1.3; } .tm-date b { display: block; } .tm-date span { font-size: 12.5px; color: var(--mu); }
+body.past .tm { border-top-color: var(--z2); } body.past #tm-now { background: var(--z2); border-color: var(--z2); color: #231F05; }
+main { max-width: 1480px; margin: 0 auto; padding: 22px 28px 12px; display: grid; gap: 18px; }
+.panel { background: linear-gradient(180deg, var(--s2), var(--s1)); border: 1px solid var(--line); border-radius: 18px; padding: 20px 22px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 18px 40px -26px rgba(0, 0, 0, .7); }
+.hero { display: grid; grid-template-columns: minmax(320px, 420px) minmax(0, 1fr); gap: 18px; }
+
+.score { display: grid; justify-items: center; text-align: center; gap: 4px; }
+.gauge { width: 100%; max-width: 330px; }
+.gauge text { font-family: var(--disp); font-weight: 600; fill: var(--tx); }
+.zone { font: 600 20px var(--disp); margin-top: -4px; }
+.buy { font-size: 16px; font-weight: 600; }
+.sub { font-size: 13px; color: var(--mu); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 10px; }
+.chip { font-size: 12.5px; padding: 4px 11px; border-radius: 99px; border: 1px solid var(--line); color: var(--mu); }
+.chip.on { color: #04241D; background: var(--z4); border-color: var(--z4); font-weight: 700; }
+
+.pillars { display: grid; align-content: space-between; gap: 6px; }
+.pl { display: grid; grid-template-columns: 215px 52px minmax(0, 1fr) 44px; align-items: center; gap: 14px; padding: 9px 0; border-top: 1px solid var(--line); }
+.pl:first-of-type { border-top: 0; }
+.pl small { display: block; color: var(--mu); font-size: 12.5px; font-weight: 500; }
+.pl .w { color: var(--mu); font-size: 13px; text-align: right; }
+.pl b { text-align: right; font: 600 17px var(--disp); }
+.bar { height: 10px; border-radius: 6px; background: rgba(142, 151, 198, .14); position: relative; overflow: hidden; }
+.bar i { position: absolute; inset: 0 auto 0 0; border-radius: 6px; transition: width .5s; }
+.head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+
+.tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.tg { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 99px; border: 1px solid var(--line); background: transparent; font-size: 13px; color: var(--mu); }
+.tg[aria-pressed="true"] { color: var(--tx); background: rgba(91, 140, 255, .14); border-color: rgba(91, 140, 255, .55); }
+.tg s { width: 16px; height: 0; border-top: 2px solid; text-decoration: none; }
+.tg s.dash { border-top-style: dashed; } .tg s.dot { border-top-style: dotted; }
+.sep { width: 1px; height: 20px; background: var(--line); margin: 0 4px; }
+.readout { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 13.5px; color: var(--mu); min-height: 22px; margin: 6px 0 2px; }
+.readout b { color: var(--tx); font-weight: 700; }
+#c-price { height: 440px; } #c-score { height: 190px; }
+.cap { font-size: 13px; color: var(--mu); margin: 10px 0 2px; }
+.scale { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--mu); }
+.scale span::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; background: var(--c); vertical-align: -1px; }
+
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-size: 12.5px; font-weight: 600; color: var(--mu); padding: 6px 10px 8px 0; }
+td { padding: 9px 10px 9px 0; border-top: 1px solid var(--line); vertical-align: middle; }
+td small { display: block; color: var(--mu); font-size: 12.5px; }
+tr.grp td { border-top: 0; padding-top: 20px; font: 600 13.5px var(--disp); }
+tr.grp:first-child td { padding-top: 4px; }
+tr.grp span { font: 500 13px var(--body); color: var(--mu); margin-left: 10px; }
+td.num, th.num { text-align: right; white-space: nowrap; }
+td.sc { width: 30%; min-width: 150px; }
+.sc div { display: grid; grid-template-columns: minmax(0, 1fr) 30px; gap: 10px; align-items: center; }
+.sc b { text-align: right; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; background: var(--c); }
+.two { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 18px; align-items: start; }
+
+#msg { margin: 0 auto; max-width: 1480px; padding: 14px 28px 0; }
+#msg div { border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; background: var(--s1); display: flex; gap: 14px; align-items: center; justify-content: space-between; }
+#msg.err div { border-color: var(--z0); }
+#msg button { border: 1px solid var(--line); background: var(--s2); border-radius: 8px; padding: 6px 12px; }
+footer { max-width: 1480px; margin: 0 auto; padding: 8px 28px 34px; font-size: 12.5px; color: var(--mu); display: grid; gap: 6px; }
+.src { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+[hidden] { display: none !important; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 14px 0 4px; }
+.stat { background: rgba(142, 151, 198, .08); border-radius: 12px; padding: 10px 14px; }
+.stat small, .stat span { display: block; color: var(--mu); font-size: 12.5px; }
+.stat b { font: 600 18px var(--disp); }
+#q-cyc { height: 380px; }
+.qt { margin-top: 12px; } .qt td { white-space: nowrap; }
+#q-mc svg, #l-map svg { display: block; } #q-mc text, #l-map text { fill: var(--mu); font: 500 12px var(--body); } #q-mc .fl, #l-map .fl { fill: var(--tx); font-weight: 600; }
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 6px 0 12px; padding: 0; list-style: none; counter-reset: st; }
+.steps li { counter-increment: st; position: relative; background: rgba(142, 151, 198, .08); border-radius: 12px; padding: 12px 14px 12px 52px; font-size: 13.5px; color: var(--mu); }
+.steps li::before { content: counter(st); position: absolute; left: 14px; top: 12px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: rgba(91, 140, 255, .22); color: var(--tx); font: 600 13px var(--disp); }
+.steps b { display: block; color: var(--tx); font-weight: 600; margin-bottom: 2px; }
+@media (max-width: 900px) { .steps { grid-template-columns: minmax(0, 1fr); } }
+.lead { color: var(--mu); margin: 0 0 10px; max-width: 80ch; }
+#l-tw { height: 360px; } #l-ru { height: 340px; }
+#l-map { cursor: crosshair; }
+.lv { max-width: 860px; margin-top: 14px; } .lv td:first-child, .lv th:first-child { padding-left: 12px; width: 130px; } .lv td:nth-child(2), .lv th:nth-child(2) { width: 150px; padding-right: 26px; }
+.lv tr.now td { background: rgba(91, 140, 255, .14); color: var(--tx); font-weight: 600; } .lv tr.now td:first-child { border-radius: 8px 0 0 8px; } .lv tr.now td:last-child { border-radius: 0 8px 8px 0; }
+.rule { display: grid; gap: 8px; margin: 14px 0 8px; }
+.rule-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.rule > .rule-row > span:first-child, .rule > .rule-row > label { width: 68px; color: var(--mu); font-size: 13.5px; display: inline-flex; gap: 6px; align-items: center; }
+select.q-in { width: auto; max-width: 100%; } .rule input[type="number"] { width: 96px; }
+.qt .tg { padding: 3px 10px; }
+.q-prob { margin: 12px 0 0; } .q-prob label { color: var(--mu); font-size: 13px; }
+.q-in { width: 110px; background: var(--s1); border: 1px solid var(--line); border-radius: 8px; color: var(--tx); padding: 4px 8px; font: inherit; }
+.q-two { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 30px; align-items: start; }
+.ic-row { display: grid; grid-template-columns: 210px minmax(0, 1fr) 130px; gap: 16px; align-items: center; padding: 7px 0; border-top: 1px solid var(--line); }
+.ic-row:first-child { border-top: 0; } .ic-row small { display: block; color: var(--mu); font-size: 12.5px; }
+.ic-track { position: relative; height: 18px; } .ic-track::before { content: ''; position: absolute; left: 50%; top: -7px; bottom: -7px; width: 1px; background: var(--mu); }
+.ic-track i { position: absolute; top: 3px; height: 12px; border-radius: 6px; }
+.ic-val { text-align: right; font: 600 15px var(--disp); }
+.cm { width: auto; border-collapse: separate; border-spacing: 3px; }
+.cm td, .cm th { border: 0; padding: 0; text-align: center; font-size: 12px; }
+.cm td { width: 54px; height: 32px; border-radius: 6px; font-weight: 600; } .cm th { color: var(--mu); font-weight: 600; padding: 2px 5px; } .cm th.r { text-align: right; }
+@media (max-width: 1250px) { .q-two { grid-template-columns: minmax(0, 1fr); } .cm td { width: 46px; } }
+.fw-row { display: grid; grid-template-columns: 280px minmax(0, 1fr) 170px; gap: 18px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.fw-row:first-child { border-top: 0; }
+.fw-row small { display: block; color: var(--mu); font-size: 12.5px; }
+.fw-track { position: relative; height: 24px; background: repeating-linear-gradient(90deg, rgba(142, 151, 198, .16) 0 1px, transparent 1px calc(100% / 7)); }
+.fw-track::before { content: ''; position: absolute; left: 28.571%; top: -10px; bottom: -10px; width: 1px; background: var(--mu); }
+.fw-range { position: absolute; top: 6px; height: 12px; border-radius: 6px; opacity: .55; }
+.fw-med { position: absolute; top: 1px; width: 3px; height: 22px; margin-left: -1.5px; border-radius: 2px; background: var(--tx); }
+.fw-val { text-align: right; } .fw-val b { font: 600 17px var(--disp); }
+.fw-axis { border-top: 0; padding: 0 0 6px; }
+.fw-ticks { position: relative; height: 18px; font-size: 12px; color: var(--mu); }
+.fw-ticks span { position: absolute; translate: -50% 0; white-space: nowrap; }
+#bt-take { margin: 4px 0 0; padding-left: 20px; max-width: 90ch; } #bt-take li { margin: 7px 0; }
+@media (max-width: 1000px) { .fw-row { grid-template-columns: minmax(0, 1fr); gap: 6px; } .fw-val { text-align: left; } .fw-axis span:first-child { display: none; } }
+
+@media (max-width: 1000px) {
+  .hero, .two, .kos { grid-template-columns: minmax(0, 1fr); }
+  .tm { padding: 8px 12px; flex-wrap: wrap; } .tm-date { min-width: 0; flex: 1 1 100%; order: -1; } .k-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .top { flex-wrap: wrap; gap: 10px 18px; padding: 14px 16px; } .stamp { min-width: 0; }
+  main { padding: 16px; } #msg, footer { padding-left: 16px; padding-right: 16px; }
+  .pl { grid-template-columns: minmax(0, 1fr) 44px; } .pl .w { display: none; } .pl .bar { grid-column: 1 / -1; order: 3; }
+  #c-price { height: 340px; }
+}
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><i>₿</i><h1>Makro-Terminal</h1></div>
+  <nav class="tabs" aria-label="Ansichten"><a href="#kosmos" data-tab="kosmos">Kosmos</a><a href="#analyse" data-tab="analyse">Analyse</a><a href="#quant" data-tab="quant">Quant</a><a href="#labor" data-tab="labor">Labor</a></nav>
+  <div class="tick"><span class="mu">BTC</span><b id="price">–</b><span id="chg" class="mu"></span></div>
+  <div class="stamp" id="stamp">Lade Marktdaten …</div>
+</header>
+<div id="msg" hidden><div><span id="msg-t"></span><button id="msg-b" hidden>Erneut laden</button></div></div>
+<main>
+  <div id="v-kosmos" class="view kos">
+    <section class="panel">
+      <div class="head"><h2>Zyklus-Spirale</h2><span class="sub">Ziehen dreht, Mausrad zoomt</span></div>
+      <div class="stage" id="st-spiral"><canvas></canvas><div class="labels"></div></div>
+      <p class="sub">Eine Umdrehung ist ein Halving-Zyklus, weiter außen heißt höherer Kurs, nach oben läuft die Zeit. Die Farbe zeigt den Score an jedem Tag.</p>
+    </section>
+    <section class="panel">
+      <div class="head"><h2>Konstellation</h2><span class="sub">Je näher an der Kauf-Achse, desto günstiger</span></div>
+      <div class="stage" id="st-planets"><canvas></canvas><div class="labels"></div></div>
+      <div class="k-score"><b id="k-num">–</b><div><span class="zone" id="k-zone"></span><span class="buy" id="k-buy"></span></div></div>
+      <div class="k-list" id="k-list"></div>
+      <p class="sub">Die Zahl in der Sonne ist der Gesamtscore, jeder Planet eine Säule, die Größe zeigt das Gewicht. Die Spur hinter einem Planeten zeigt seinen Weg in den letzten 90 Tagen. Stehen alle Planeten im hellen Feld ab 80, ist das eine Konjunktion.</p>
+    </section>
+  </div>
+
+  <div id="v-analyse" class="view" hidden>
+  <section class="hero">
+    <div class="panel score">
+      <svg class="gauge" viewBox="0 0 240 132" role="img" aria-labelledby="g-t"><title id="g-t">Makro-Score</title><g id="g-arc"></g><line id="g-mark" stroke="#EAEEFF" stroke-width="3" stroke-linecap="round"/><text id="g-num" x="120" y="112" text-anchor="middle" font-size="46">–</text></svg>
+      <div class="zone" id="zone">–</div>
+      <div class="buy" id="buy"></div>
+      <div class="sub" id="when"></div>
+      <div class="sub" id="trend"></div>
+      <div class="sub" id="agree"></div>
+      <div class="chips" id="chips"></div>
+    </div>
+    <div class="panel pillars">
+      <div class="head"><h2>Die fünf Säulen</h2><span class="sub">0 = historisch teuer, 100 = historisch günstig</span></div>
+      <div id="pillars"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="head">
+      <h2>Kurs, eingefärbt nach Score</h2>
+      <div class="tools" id="tools">
+        <button class="tg" data-ov="w200" aria-pressed="true"><s class="dash" style="color:#EAEEFF"></s>200-Wochen-MA</button>
+        <button class="tg" data-ov="band" aria-pressed="false"><s style="color:#5B8CFF"></s>Bull-Band</button>
+        <button class="tg" data-ov="real" aria-pressed="true"><s style="color:#D957AE"></s>Realized Price</button>
+        <button class="tg" data-ov="log" aria-pressed="false"><s class="dot" style="color:#8E97C6"></s>Log-Bänder</button>
+        <span class="sep"></span>
+        <button class="tg" data-y="2" aria-pressed="false">2 J</button>
+        <button class="tg" data-y="4" aria-pressed="false">4 J</button>
+        <button class="tg" data-y="8" aria-pressed="false">8 J</button>
+        <button class="tg" data-y="0" aria-pressed="true">Alles</button>
+      </div>
+    </div>
+    <div class="readout" id="readout"></div>
+    <div id="c-price"></div>
+    <div class="cap">Makro-Score im Zeitverlauf</div>
+    <div id="c-score"></div>
+    <div class="scale" id="scale"></div>
+  </section>
+
+  <div class="two">
+    <section class="panel">
+      <div class="head"><h2>Alle Indikatoren</h2><span class="sub" id="asof"></span></div>
+      <table><thead><tr><th>Indikator</th><th class="num">Wert</th><th>Score</th><th>Einordnung</th></tr></thead><tbody id="ind"></tbody></table>
+    </section>
+    <section class="panel">
+      <div class="head"><h2>Rückblick: Was hätte der Score gesagt?</h2></div>
+      <table><thead><tr><th>Datum</th><th class="num">Kurs</th><th class="num">Score</th><th>Zone</th></tr></thead><tbody id="hist"></tbody></table>
+      <p class="sub">Die Perzentile kennen an jedem Tag nur die Daten bis dahin. Die Ausnahme ist der Zyklus-Baustein (10 %): Sein Verlauf wurde aus genau diesen Zyklen abgeleitet.</p>
+    </section>
+  </div>
+  </div>
+  <div id="v-quant" class="view" hidden>
+    <section class="panel">
+      <div class="head">
+        <h2>Was nach jedem Score-Bereich passierte</h2>
+        <div class="tools" id="fw-tools">
+          <button class="tg" data-h="365" aria-pressed="true">1 Jahr später</button>
+          <button class="tg" data-h="730" aria-pressed="false">2 Jahre später</button>
+          <span class="sep"></span>
+          <button class="tg" data-from="2013-01-01" aria-pressed="true">seit 2013</button>
+          <button class="tg" data-from="2019-01-01" aria-pressed="false">seit 2019</button>
+        </div>
+      </div>
+      <div id="fw"></div>
+      <p class="sub">Für jeden Tag in einer Zone wird gemessen, wie stark sich der Kurs danach verändert hat. Der Balken reicht von den schlechtesten 10 % bis zu den besten 10 % der Tage, der Strich ist der Median. Die Achse ist logarithmisch.</p>
+    </section>
+    <section class="panel">
+      <div class="head">
+        <h2>Zyklus-Symmetrien</h2>
+        <div class="tools" id="q-cyc-tools">
+          <button class="tg" data-mode="top" aria-pressed="true">Tage seit dem Hoch</button>
+          <button class="tg" data-mode="low" aria-pressed="false">Tage seit dem Tief</button>
+        </div>
+      </div>
+      <div class="readout" id="q-cyc-read"></div>
+      <div id="q-cyc"></div>
+      <table class="qt"><thead><tr><th>Zyklus</th><th>Tief</th><th>Hoch</th><th class="num">Tage aufwärts</th><th class="num">Tage abwärts</th><th class="num">Verhältnis</th><th class="num">Tief zum Hoch</th><th class="num">Rückgang</th><th class="num">Tief zu Tief</th><th class="num">Gleichlauf mit heute</th></tr></thead><tbody id="q-cyc-t"></tbody></table>
+      <p class="sub" id="q-cyc-note"></p>
+      <p class="sub">Alle Zyklen liegen übereinander, jeweils ab ihrem Hoch oder Tief. Ein Hoch ist der höchste Tagesschluss 200 bis 800 Tage nach einem Halving, ein Tief der tiefste Schluss zwischen zwei Hochs. Gleichlauf ist die Korrelation des Verlaufs seit dem Tief mit dem laufenden Zyklus, 1 wäre deckungsgleich.</p>
+    </section>
+    <section class="panel">
+      <div class="head">
+        <h2>Monte-Carlo-Fächer: 2.000 mögliche Kursverläufe</h2>
+        <div class="tools" id="q-mc-tools">
+          <button class="tg" data-days="365" aria-pressed="true">1 Jahr</button>
+          <button class="tg" data-days="730" aria-pressed="false">2 Jahre</button>
+          <span class="sep"></span>
+          <button class="tg" data-pool="all" aria-pressed="true">Renditen seit 2018</button>
+          <button class="tg" data-pool="zone" aria-pressed="false">nur aus der heutigen Zone</button>
+          <span class="sep"></span>
+          <button class="tg" data-next="1">Anderen Verlauf zeigen</button>
+        </div>
+      </div>
+      <ol class="steps">
+        <li><b>Ein Stück echte Geschichte ziehen</b>Der Rechner greift zufällig 30 Tage aus dem echten Kursverlauf heraus und hängt deren tägliche Auf- und Abbewegungen in Prozent an den heutigen Kurs.</li>
+        <li><b>Aneinanderreihen, bis die Zeit voll ist</b>Rund zwölf solcher Stücke ergeben ein Jahr. So entsteht ein möglicher Kursverlauf, eine der dünnen Linien. Die pinke Linie ist ein einzelner davon.</li>
+        <li><b>2.000-mal wiederholen und sortieren</b>Aus allen Verläufen entsteht der Fächer. Im dunklen Band liegt die mittlere Hälfte, im hellen Band liegen 90 %, die blaue Linie ist die Mitte.</li>
+      </ol>
+      <div class="readout" id="q-mc-read"></div>
+      <div id="q-mc"></div>
+      <div class="stats" id="q-mc-stats"></div>
+      <p class="q-prob"><label for="q-mc-x">Schwelle</label> <input class="q-in" id="q-mc-x" type="number" min="1" step="1000" value="100000"> $ <span id="q-mc-prob"></span></p>
+      <p class="sub">Der Fächer ist keine Vorhersage. Er beantwortet nur eine Frage: Wenn sich Bitcoin weiter so bewegt wie in den gewählten Jahren, welche Kurse wären dann normal und welche ungewöhnlich? Frühere Jahre hatten deutlich höhere Renditen, die Werte sind deshalb eher zu optimistisch. Die Achse ist logarithmisch.</p>
+    </section>
+    <section class="panel">
+      <div class="head">
+        <h2>Signal-Güte: Welcher Indikator sagt etwas voraus?</h2>
+        <div class="tools" id="q-ic-tools">
+          <button class="tg" data-h="90" aria-pressed="false">90 Tage später</button>
+          <button class="tg" data-h="365" aria-pressed="true">1 Jahr später</button>
+          <button class="tg" data-h="730" aria-pressed="false">2 Jahre später</button>
+        </div>
+      </div>
+      <div class="q-two">
+        <div><div id="q-ic"></div><p class="sub">Rangkorrelation zwischen dem Score eines Indikators und der Kursänderung danach. +1 hieße: je günstiger der Indikator, desto höher immer die spätere Rendite. 0 heißt kein Zusammenhang. Die Wochen überlappen sich stark, die Werte sehen deshalb sicherer aus, als sie sind.</p></div>
+        <div><table class="cm" id="q-corr"></table><p class="sub">Wie ähnlich sich die Indikatoren untereinander sind. Kräftiges Blau nahe 1 heißt: Beide messen fast dasselbe.</p></div>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="head"><h2>Was das heißt</h2></div>
+      <ul id="bt-take"></ul>
+    </section>
+  </div>
+  <div id="v-labor" class="view" hidden>
+    <section class="panel">
+      <div class="head"><h2>Zwillings-Tage</h2></div>
+      <p class="lead">Die fünf Tage der Geschichte, an denen alle Indikatoren zusammen am ähnlichsten standen wie heute, und wie der Kurs danach weiterlief.</p>
+      <div class="readout" id="l-tw-read"></div>
+      <div id="l-tw"></div>
+      <table class="qt"><thead><tr><th>Zwillings-Tag</th><th class="num">Kurs damals</th><th class="num">Score damals</th><th class="num">Abstand zu heute</th><th class="num">90 Tage später</th><th class="num">1 Jahr später</th><th class="num">2 Jahre später</th><th></th></tr></thead><tbody id="l-tw-t"></tbody></table>
+      <p class="sub" id="l-tw-note"></p>
+      <p class="sub">Der Abstand ist die mittlere Abweichung der einzelnen Indikator-Scores zu heute in Punkten, 0 wäre deckungsgleich. Zwillinge liegen mindestens 120 Tage auseinander und mindestens ein halbes Jahr zurück. Die Linien zeigen die Kursänderung ab dem jeweiligen Tag, die hellste Linie ist der ähnlichste Tag. Die Achse ist logarithmisch.</p>
+    </section>
+    <section class="panel">
+      <div class="head"><h2>Preis-Landkarte</h2><span class="sub" id="l-map-st"></span></div>
+      <p class="lead">Welcher Score gälte, wenn der Kurs heute woanders stünde? Und bei welchem Kurs kippt welcher Indikator?</p>
+      <div class="readout" id="l-map-read"></div>
+      <div id="l-map"></div>
+      <table class="lv"><thead><tr><th class="num">Kurs</th><th class="num">Abstand zu heute</th><th>Was dort liegt</th></tr></thead><tbody id="l-map-t"></tbody></table>
+      <p class="sub">Für 25 gedachte Kurse zwischen −65 % und +200 % wird der ganze Score neu gerechnet, alles andere bleibt wie heute. Stimmung, Funding und Hashrate würden sich bei so einer Bewegung mitbewegen, das kann die Karte nicht wissen. In echt reagiert der Score deshalb eher stärker als hier gezeigt.</p>
+    </section>
+    <section class="panel">
+      <div class="head">
+        <h2>Regel-Prüfstand</h2>
+        <div class="tools" id="l-ru-h">
+          <button class="tg" data-h="90" aria-pressed="false">90 Tage später</button>
+          <button class="tg" data-h="365" aria-pressed="true">1 Jahr später</button>
+          <button class="tg" data-h="730" aria-pressed="false">2 Jahre später</button>
+        </div>
+      </div>
+      <p class="lead">Stell eine eigene Regel auf und sieh, was nach solchen Tagen mit dem Kurs passierte, verglichen mit allen Tagen im selben Zeitraum.</p>
+      <div class="tools" id="l-ru-pre">
+        <button class="tg" data-pre="fng,<,20;w200,<,0">Angst unter dem 200-Wochen-MA</button>
+        <button class="tg" data-pre="mayer,<,0.8">Mayer unter 0,8</button>
+        <button class="tg" data-pre="dd,<,-60;rsi,<,35">60 % unter Allzeithoch, RSI unter 35</button>
+        <button class="tg" data-pre="score,>,80">Score über 80</button>
+        <button class="tg" data-pre="fng,>,80;mayer,>,1.5">Gier und teuer</button>
+      </div>
+      <form class="rule" id="l-ru-form" onsubmit="return false">
+        <div class="rule-row"><span>Wenn</span><select class="q-in" id="l-v0" aria-label="Erste Größe"></select><select class="q-in" id="l-o0" aria-label="Vergleich"><option value="<">unter</option><option value=">">über</option></select><input class="q-in" id="l-x0" type="number" step="any" aria-label="Erster Wert"></div>
+        <div class="rule-row"><label><input type="checkbox" id="l-two"> und</label><span class="rule-row" id="l-row1"><select class="q-in" id="l-v1" aria-label="Zweite Größe"></select><select class="q-in" id="l-o1" aria-label="Vergleich"><option value="<">unter</option><option value=">">über</option></select><input class="q-in" id="l-x1" type="number" step="any" aria-label="Zweiter Wert"></span></div>
+      </form>
+      <div class="readout" id="l-ru-read"></div>
+      <div id="l-ru"></div>
+      <table class="qt"><thead><tr><th>Zeitraum</th><th class="num">Tage mit Regel</th><th class="num">Phasen</th><th class="num">Median danach</th><th class="num">Spanne</th><th class="num">im Plus</th><th class="num">Median aller Tage</th><th class="num">Alle Tage im Plus</th></tr></thead><tbody id="l-ru-t"></tbody></table>
+      <p class="sub" id="l-ru-note"></p>
+      <p class="sub">Türkis sind die Tage, an denen die Regel galt, ein Pfeil markiert den Beginn jeder Phase. Die Spanne reicht von den schlechtesten 10 % bis zu den besten 10 % dieser Tage. Eine Phase ist ein zusammenhängender Abschnitt, mehr als 30 Tage Pause trennen zwei Phasen. Wer lange genug an einer Regel dreht, findet immer eine, die in der Vergangenheit gut aussah. Vertrauen verdient sie erst, wenn sie in beiden Hälften der Geschichte funktioniert hat.</p>
+    </section>
+  </div>
+</main>
+<div class="tm" id="tm">
+  <button id="tm-play" class="rb" aria-label="Abspielen">▶</button>
+  <button id="tm-back" class="rb" aria-label="Eine Woche zurück">‹</button>
+  <div class="tm-track"><input type="range" id="tm-range" min="0" max="0" step="1" value="0" aria-label="Datum der Zeitmaschine"><div class="tm-years" id="tm-years"></div></div>
+  <button id="tm-fwd" class="rb" aria-label="Eine Woche vor">›</button>
+  <div class="tm-date"><b id="tm-date">Zeitmaschine</b><span id="tm-info"></span></div>
+  <button id="tm-now">Heute</button>
+</div>
+<footer>
+  <div class="src" id="src"></div>
+  <div>Ein Werkzeug für die eigene Entscheidung, keine Finanzberatung. Es gibt erst rund vier Zyklen als Datenbasis.</div>
+</footer>
+<script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+<script src="https://unpkg.com/three@0.147.0/build/three.min.js"></script>
+<script>
+/* Makro-Terminal · Daten und Score. Alle Perzentile nutzen nur Daten bis zum jeweiligen Tag. */
+const MT = (() => {
+  'use strict';
+  const DAY = 86400000;
+  const dn = s => Math.round(Date.parse(String(s).slice(0, 10) + 'T00:00:00Z') / DAY);
+  const ds = n => new Date(n * DAY).toISOString().slice(0, 10);
+  const num = v => (v == null || v === '' ? null : +v);
+  const GENESIS = dn('2009-01-03');
+  const HALVINGS = ['2012-11-28', '2016-07-09', '2020-05-11', '2024-04-20'].map(dn);
+  const CYCLE_LEN = 1430;
+  // Feste Annahme aus drei Zyklen: Tops lagen ca. 370 bis 550 Tage, Böden ca. 780 bis 920 Tage nach dem Halving.
+  const CYCLE_KNOTS = [[0, 60], [250, 35], [480, 10], [600, 15], [860, 100], [1000, 90], [1200, 70], [1430, 60]];
+  const WEIGHTS = { val: 40, sent: 20, mom: 15, miner: 15, cyc: 10 };
+  const ZONES = [
+    { min: 80, id: 4, name: 'Extrem günstig' },
+    { min: 60, id: 3, name: 'Akkumulieren' },
+    { min: 40, id: 2, name: 'Neutral' },
+    { min: 20, id: 1, name: 'Teuer' },
+    { min: -1, id: 0, name: 'Überhitzt' }
+  ];
+  const zone = s => ZONES.find(z => s >= z.min);
+  // Zonenfarben und fließender Verlauf dazwischen
+  const ZC = ['#EF4B5B', '#F2913D', '#D8C56A', '#46D39A', '#12E6C1'];
+  const ZRGB = ZC.map(h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)));
+  function ramp(s) { const t = Math.max(0, Math.min(4, (s - 10) / 20)), i = Math.min(3, Math.floor(t)), f = t - i; return ZRGB[i].map((v, k) => Math.round(v + (ZRGB[i + 1][k] - v) * f)); }
+  // Umdrehungen der Zyklus-Spirale: jedes Halving liegt auf einer vollen Umdrehung. Das nächste Halving ist geschätzt.
+  const NEXT_HALVING = dn('2028-04-15');
+  function turns(d) {
+    const H = HALVINGS.concat(NEXT_HALVING);
+    if (d < H[0]) return (d - H[0]) / CYCLE_LEN;
+    for (let k = H.length - 2; k >= 0; k--) if (d >= H[k]) return k + (d - H[k]) / (H[k + 1] - H[k]);
+  }
+
+  /* ---------- Rechen-Helfer ---------- */
+  const fill = n => new Array(n).fill(null);
+  function sma(a, w) {
+    const o = fill(a.length); let s = 0, c = 0;
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] != null) { s += a[i]; c++; }
+      if (i >= w && a[i - w] != null) { s -= a[i - w]; c--; }
+      if (c === w) o[i] = s / w;
+    }
+    return o;
+  }
+  function ema(a, w) {
+    const o = fill(a.length), k = 2 / (w + 1); let e = null, c = 0;
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] == null) continue;
+      e = e == null ? a[i] : a[i] * k + e * (1 - k);
+      if (++c >= w) o[i] = e;
+    }
+    return o;
+  }
+  function ff(a, lim) {
+    const o = a.slice(); let run = 0;
+    for (let i = 1; i < o.length; i++) {
+      if (o[i] == null && o[i - 1] != null && run < lim) { o[i] = o[i - 1]; run++; } else if (o[i] != null) run = 0;
+    }
+    return o;
+  }
+  const ratio = (a, b) => a.map((v, i) => (v != null && b[i] ? v / b[i] : null));
+  function interp(knots, x) {
+    for (let i = 1; i < knots.length; i++) {
+      if (x <= knots[i][0]) { const [x0, y0] = knots[i - 1], [x1, y1] = knots[i]; return y0 + (y1 - y0) * (x - x0) / (x1 - x0); }
+    }
+    return knots[knots.length - 1][1];
+  }
+  const mean = xs => { let s = 0, c = 0; for (const x of xs) if (x != null) { s += x; c++; } return c ? s / c : null; };
+  function quantile(sorted, q) { const p = (sorted.length - 1) * q, i = Math.floor(p); return sorted[i] + (sorted[Math.min(i + 1, sorted.length - 1)] - sorted[i]) * (p - i); }
+
+  /* Score 0..100: Anteil der bisherigen Tage, an denen der Indikator höher (teurer) stand. */
+  function pctScore(a, win = 0, minN = 365) {
+    const n = a.length, o = fill(n), ok = v => v != null && isFinite(v);
+    const sorted = Float64Array.from(a.filter(ok)).sort(), uniq = [];
+    for (const v of sorted) if (!uniq.length || uniq[uniq.length - 1] !== v) uniq.push(v);
+    const m = uniq.length, bit = new Int32Array(m + 1);
+    const rank = v => { let lo = 0, hi = m - 1; while (lo < hi) { const mid = (lo + hi) >> 1; if (uniq[mid] < v) lo = mid + 1; else hi = mid; } return lo; };
+    const upd = (r, d) => { for (let j = r + 1; j <= m; j += j & -j) bit[j] += d; };
+    const below = i => { let s = 0; for (; i > 0; i -= i & -i) s += bit[i]; return s; };
+    let c = 0;
+    for (let i = 0; i < n; i++) {
+      if (win && i >= win && ok(a[i - win])) { upd(rank(a[i - win]), -1); c--; }
+      if (!ok(a[i])) continue;
+      const r = rank(a[i]);
+      upd(r, 1);
+      c++;
+      if (c >= minN) { const less = below(r), leq = below(r + 1); o[i] = 100 * (1 - (less + 0.5 * (leq - less)) / c); }
+    }
+    return o;
+  }
+
+  /* ---------- Tagesraster aus den Rohdaten ---------- */
+  function assemble(raw) {
+    const cm = raw.cm, firstRow = cm.find(r => r[1] != null);
+    const first = firstRow[0], today = Math.floor(Date.now() / DAY), n = today - first + 1;
+    const col = k => { const o = fill(n); for (const r of cm) { const i = r[0] - first; if (i >= 0 && i < n) o[i] = r[k]; } return o; };
+    const price = col(1);
+    let lastCM = 0; for (let i = 0; i < n; i++) if (price[i] != null) lastCM = i;
+    for (const c of raw.cbDaily || []) { const i = Math.floor(c[0] / 86400) - first; if (i >= 0 && i < n - 1 && price[i] == null) price[i] = c[4]; }
+    if (raw.live && raw.live.price) price[n - 1] = raw.live.price;
+    for (let i = 1; i < n; i++) if (price[i] == null) price[i] = price[i - 1];
+    const sparse = rows => { const o = fill(n); for (const [d, v] of rows || []) { const i = d - first; if (i >= 0 && i < n) o[i] = v; } return o; };
+    return { first, n, lastCM, price, mvrv: col(2), mcap: col(3), sply: col(4), hash: col(5), iss: col(6), fng: sparse(raw.fng), fund: sparse(raw.fund) };
+  }
+
+  /* ---------- Indikatoren, Säulen, Score ---------- */
+  function compute(D, opt = {}) {
+    const { first, n, price } = D, win = opt.win || 0, Wg = opt.weights || WEIGHTS;
+    const sma200 = sma(price, 200), sma1400 = sma(price, 1400), sma471 = sma(price, 471), ema150 = ema(price, 150);
+    const mayer = ratio(price, sma200), w200 = ratio(price, sma1400);
+
+    // Log-Regression (Potenzgesetz), mitwachsend
+    const logRes = fill(n); let Sx = 0, Sy = 0, Sxx = 0, Sxy = 0, a = 0, b = 0;
+    const lx = i => Math.log(first + i - GENESIS);
+    for (let i = 0; i < n; i++) {
+      const x = lx(i), y = Math.log(price[i]), k = i + 1;
+      Sx += x; Sy += y; Sxx += x * x; Sxy += x * y;
+      if (k >= 500) { b = (k * Sxy - Sx * Sy) / (k * Sxx - Sx * Sx); a = (Sy - b * Sx) / k; logRes[i] = y - (a + b * x); }
+    }
+    const resF = price.map((p, i) => Math.log(p) - (a + b * lx(i))).sort((u, v) => u - v);
+    const qLo = quantile(resF, 0.05), qHi = quantile(resF, 0.95);
+    const logMid = fill(n), logLo = fill(n), logHi = fill(n);
+    for (let i = 0; i < n; i++) { const f = a + b * lx(i); logMid[i] = Math.exp(f); logLo[i] = Math.exp(f + qLo); logHi[i] = Math.exp(f + qHi); }
+
+    // Wochen-Indikatoren in Tagesauflösung: abgeschlossene Wochen plus laufende Woche als vorläufiger Schluss
+    const rsi = fill(n), bandLo = fill(n), bandHi = fill(n), bandRatio = fill(n);
+    const wc = [], kE = 2 / 22; let W = null, ag = 0, al = 0, cnt = 0, emaW = null;
+    for (let i = 0; i < n; i++) {
+      const p = price[i], ch = W == null ? 0 : p - W, g = Math.max(ch, 0), l = Math.max(-ch, 0);
+      if (cnt >= 14) { const A = (ag * 13 + g) / 14, L = (al * 13 + l) / 14; rsi[i] = L === 0 ? 100 : 100 - 100 / (1 + A / L); }
+      const emaP = emaW == null ? p : p * kE + emaW * (1 - kE);
+      if (wc.length >= 21) {
+        let s = p; for (let j = wc.length - 19; j < wc.length; j++) s += wc[j];
+        const s20 = s / 20; bandLo[i] = Math.min(s20, emaP); bandHi[i] = Math.max(s20, emaP); bandRatio[i] = p / ((s20 + emaP) / 2);
+      }
+      if ((first + i + 4) % 7 === 0) { // Sonntag: Woche schließt
+        if (W != null) { cnt++; if (cnt < 14) { ag += g; al += l; } else if (cnt === 14) { ag = (ag + g) / 14; al = (al + l) / 14; } else { ag = (ag * 13 + g) / 14; al = (al * 13 + l) / 14; } }
+        W = p; wc.push(p); emaW = emaP;
+      }
+    }
+
+    // On-Chain: Realized Cap = Marktwert / MVRV, daraus Realized Price und MVRV Z-Score
+    const sply = ff(D.sply, 10), rc = ff(D.mcap.map((m, i) => (m != null && D.mvrv[i] ? m / D.mvrv[i] : null)), 10);
+    const realP = fill(n), mvrvR = fill(n), mvrvZ = fill(n); let mu = 0, s2 = 0, k = 0;
+    for (let i = 0; i < n; i++) {
+      if (sply[i] == null || rc[i] == null) continue;
+      const mc = price[i] * sply[i], d = mc - mu; k++; mu += d / k; s2 += d * (mc - mu);
+      realP[i] = rc[i] / sply[i]; mvrvR[i] = mc / rc[i];
+      if (k >= 200 && s2 > 0) mvrvZ[i] = (mc - rc[i]) / Math.sqrt(s2 / k);
+    }
+
+    // Miner
+    const issN = ff(D.iss, 10), issUSD = issN.map((v, i) => (v == null ? null : v * price[i]));
+    const puell = ratio(issUSD, sma(issUSD, 365));
+    const hash = ff(D.hash, 10), ribbon = ratio(sma(hash, 30), sma(hash, 60));
+
+    // Trigger
+    const piLine = sma471.map(v => (v == null ? null : v * 0.745));
+    const piOn = fill(n), hrOn = fill(n), piEvents = [], hrEvents = []; let piLeft = 0, hrLeft = 0, capDays = 0, capMin = 9;
+    for (let i = 1; i < n; i++) {
+      if (ema150[i] != null && piLine[i] != null && piLine[i - 1] != null && ema150[i - 1] >= piLine[i - 1] && ema150[i] < piLine[i]) { piLeft = 90; piEvents.push(i); }
+      if (ribbon[i] != null) {
+        if (ribbon[i] < 1) { capDays++; capMin = Math.min(capMin, ribbon[i]); }
+        // Kaufsignal nur nach echter Kapitulation: mindestens 14 Tage und 3 % unter dem 60-Tage-Schnitt
+        else { if (capDays >= 14 && capMin <= 0.97) { hrLeft = 60; hrEvents.push(i); } capDays = 0; capMin = 9; }
+      }
+      piOn[i] = piLeft > 0; hrOn[i] = hrLeft > 0; if (piLeft) piLeft--; if (hrLeft) hrLeft--;
+    }
+
+    // Zyklus
+    const cycDay = fill(n), cycS = fill(n);
+    for (let i = 0; i < n; i++) {
+      let h = null; for (const x of HALVINGS) if (x <= first + i) h = x;
+      if (h != null) { cycDay[i] = first + i - h; cycS[i] = interp(CYCLE_KNOTS, Math.min(cycDay[i], CYCLE_LEN)); }
+    }
+
+    const fund7 = sma(D.fund, 7);
+    const S = {
+      mayer: pctScore(mayer, win), w200: pctScore(w200, win), logres: pctScore(logRes, win), mvrv: pctScore(mvrvZ, win),
+      fng: pctScore(D.fng, win), fund: pctScore(fund7, win), rsi: pctScore(rsi, win), band: pctScore(bandRatio, win),
+      puell: pctScore(puell, win), ribbon: pctScore(ribbon, win), cyc: cycS
+    };
+    const G = { val: fill(n), sent: fill(n), mom: fill(n), miner: fill(n), cyc: cycS };
+    const total = fill(n), bonus = fill(n), agree = fill(n), keys = Object.keys(WEIGHTS);
+    for (let i = 0; i < n; i++) {
+      const pv = mean([S.mayer[i], S.w200[i], S.logres[i]]);
+      G.val[i] = pv != null && S.mvrv[i] != null ? (pv + S.mvrv[i]) / 2 : (pv != null ? pv : S.mvrv[i]);
+      G.sent[i] = mean([S.fng[i], S.fund[i]]);
+      G.mom[i] = mean([S.rsi[i], S.band[i]]);
+      G.miner[i] = mean([S.puell[i], S.ribbon[i]]);
+      if (G.val[i] == null) continue;
+      let ws = 0, s = 0; for (const g of keys) if (G[g][i] != null) { ws += Wg[g]; s += Wg[g] * G[g][i]; }
+      const base = s / ws; let v = 0; for (const g of keys) if (G[g][i] != null) v += Wg[g] * (G[g][i] - base) ** 2;
+      bonus[i] = (piOn[i] ? 5 : 0) + (hrOn[i] ? 5 : 0);
+      total[i] = Math.max(0, Math.min(100, base + bonus[i]));
+      agree[i] = Math.max(0, 100 - 2 * Math.sqrt(v / ws));
+    }
+    return {
+      first, n, lastCM: D.lastCM, price, total, bonus, agree, G, S,
+      X: { mayer, w200, sma200, sma1400, logRes, logMid, logLo, logHi, rsi, bandLo, bandHi, bandRatio, realP, mvrvR, mvrvZ, puell, ribbon, fng: D.fng, fund7, cycDay, ema150, piLine, piOn, hrOn },
+      events: { pi: piEvents, hr: hrEvents }, fit: { a, b }
+    };
+  }
+
+  /* ---------- Datenabruf ---------- */
+  /* Was geschah nach jedem Score-Bereich? Kursfaktor h Tage später, je Zone. Benachbarte Tage überlappen sich stark. */
+  function forward(R, fromDay, h) {
+    const g = [[], [], [], [], []], q = (a, p) => a[Math.floor((a.length - 1) * p)];
+    for (let i = Math.max(0, fromDay - R.first); i + h < R.n; i++) if (R.total[i] != null) g[zone(R.total[i]).id].push(R.price[i + h] / R.price[i]);
+    return g.map(a => { a.sort((x, y) => x - y); return a.length < 30 ? { n: a.length } : { n: a.length, med: q(a, 0.5), lo: q(a, 0.1), hi: q(a, 0.9), pos: a.filter(x => x > 1).length / a.length }; });
+  }
+  const CM_URL = 'https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapMrktCurUSD,SplyCur,HashRate,IssTotNtv&frequency=1d&page_size=10000&paging_from=start&start_time=';
+  const CB = 'https://api.exchange.coinbase.com/products/BTC-USD/';
+  const CACHE_KEY = 'makroterminal.cache.v1';
+  async function getJSON(url) {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }
+  async function fetchCM(startDay) {
+    const rows = []; let url = CM_URL + ds(startDay);
+    while (url) { const j = await getJSON(url); rows.push(...j.data); url = j.next_page_url || null; }
+    return rows.map(r => [dn(r.time), num(r.PriceUSD), num(r.CapMVRVCur), num(r.CapMrktCurUSD), num(r.SplyCur), num(r.HashRate), num(r.IssTotNtv)]);
+  }
+  async function fetchFng(limit) {
+    const j = await getJSON('https://api.alternative.me/fng/?format=json&limit=' + limit);
+    return j.data.map(d => [Math.floor(+d.timestamp / 86400), +d.value]).sort((x, y) => x[0] - y[0]);
+  }
+  async function fetchFunding(fromDay, toDay) {
+    const acc = new Map(), wins = [];
+    for (let s = fromDay; s <= toDay; s += 60) wins.push([s, Math.min(s + 60, toDay + 1)]);
+    for (let i = 0; i < wins.length; i += 6) {
+      await Promise.all(wins.slice(i, i + 6).map(async ([s, e]) => {
+        const j = await getJSON(`https://api.bybit.com/v5/market/funding/history?category=linear&symbol=BTCUSDT&limit=200&startTime=${s * DAY}&endTime=${e * DAY - 1}`);
+        for (const f of (j.result && j.result.list) || []) { const d = Math.floor(+f.fundingRateTimestamp / DAY), x = acc.get(d) || [0, 0]; x[0] += +f.fundingRate; x[1]++; acc.set(d, x); }
+      }));
+    }
+    return [...acc].map(([d, [s, c]]) => [d, s / c]).sort((x, y) => x[0] - y[0]);
+  }
+  async function fetchLive() {
+    const [t, hourly] = await Promise.all([getJSON(CB + 'ticker'), getJSON(CB + 'candles?granularity=3600').catch(() => null)]);
+    const price = +t.price, cut = Date.now() / 1000 - 86400;
+    const ref = hourly && hourly.find(c => c[0] <= cut);
+    return { price, chg24: ref ? (price / ref[4] - 1) * 100 : null, at: Date.now() };
+  }
+  const merge = (old, fresh) => { const m = new Map(old.map(r => [r[0], r])); for (const r of fresh) m.set(r[0], r); return [...m.values()].sort((x, y) => x[0] - y[0]); };
+  function readCache() { try { return JSON.parse(localStorage.getItem(CACHE_KEY)) || {}; } catch (e) { return {}; } }
+  function writeCache(raw) { try { localStorage.setItem(CACHE_KEY, JSON.stringify({ cm: raw.cm, fng: raw.fng, fund: raw.fund })); } catch (e) { /* Speicher voll oder gesperrt: dann eben ohne */ } }
+
+  const state = { raw: null, R: null, status: {}, opt: { win: 0 } };
+  const recompute = () => { state.R = compute(assemble(state.raw), state.opt); return state.R; };
+
+  /* Lädt alles. Coin Metrics ist Pflicht, die anderen Quellen sind optional. */
+  async function loadAll() {
+    const c = readCache(), today = Math.floor(Date.now() / DAY);
+    const raw = state.raw || { cm: c.cm || [], fng: c.fng || [], fund: c.fund || [], cbDaily: [], live: null };
+    const src = async (name, fn) => { try { await fn(); state.status[name] = { ok: true, at: Date.now() }; } catch (e) { state.status[name] = { ok: false, err: String(e.message || e), at: Date.now() }; } };
+    await Promise.all([
+      src('Coin Metrics', async () => { raw.cm = merge(raw.cm, await fetchCM(raw.cm.length ? raw.cm[raw.cm.length - 1][0] - 7 : dn('2010-07-18'))); }),
+      src('Coinbase', async () => { const [live, daily] = await Promise.all([fetchLive(), getJSON(CB + 'candles?granularity=86400')]); raw.live = live; raw.cbDaily = daily; }),
+      src('alternative.me', async () => { raw.fng = merge(raw.fng, await fetchFng(raw.fng.length ? 40 : 0)); }),
+      src('Bybit', async () => { raw.fund = merge(raw.fund, await fetchFunding(raw.fund.length ? raw.fund[raw.fund.length - 1][0] - 2 : dn('2020-03-25'), today)); })
+    ]);
+    if (!raw.cm.length) throw new Error('Coin Metrics liefert keine Daten und es gibt keinen Zwischenspeicher.');
+    state.raw = raw; writeCache(raw);
+    return recompute();
+  }
+  async function refreshLive() {
+    try { state.raw.live = await fetchLive(); state.status.Coinbase = { ok: true, at: Date.now() }; } catch (e) { state.status.Coinbase = { ok: false, err: String(e.message || e), at: Date.now() }; }
+    return recompute();
+  }
+
+  return { DAY, dn, ds, HALVINGS, CYCLE_LEN, WEIGHTS, ZONES, ZC, zone, ramp, turns, compute, assemble, forward, pctScore, sma, ema, loadAll, refreshLive, state };
+})();
+</script>
+<script>
+/* Makro-Terminal · Kosmos: Zyklus-Spirale und Konstellation (Three.js) */
+const Kosmos = (() => {
+  'use strict';
+  const T = window.THREE, TAU = Math.PI * 2, GRAY = 0x3A4477, TEAL = 0x12E6C1, STEP = 3, RISE = 1.5;
+  const PILL = [['val', 'Bewertung'], ['sent', 'Sentiment'], ['mom', 'Momentum'], ['miner', 'Miner'], ['cyc', 'Zyklus']];
+  const MARKS = [['2013-11-30', 'Hoch 2013', 0], ['2015-01-14', 'Tief 2015', 1], ['2017-12-17', 'Hoch 2017', 0], ['2018-12-15', 'Tief 2018', 1], ['2021-11-10', 'Hoch 2021', 0], ['2022-11-21', 'Tief 2022', 1], ['2025-10-06', 'Hoch 2025', 0]];
+  const ORB = [3.6, 4.9, 6.0, 7.0, 8.0];
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const col = s => { if (s == null) return new T.Color(GRAY); const c = MT.ramp(s); return new T.Color(c[0] / 255, c[1] / 255, c[2] / 255); };
+  const money = v => Math.round(v).toLocaleString('de-DE') + ' $';
+  const day = d => new Date(d * MT.DAY).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
+  const A = {}, B = {}; let ready = false, active = true, R = null, vi = 0, last = 0, snap = true;
+
+  /* Eine Bühne: Renderer, Kamera zum Drehen und Zoomen, Beschriftungen als HTML über dem Bild */
+  function stage(id, fov, st) {
+    const box = document.getElementById(id), canvas = box.querySelector('canvas'), lab = box.querySelector('.labels');
+    const ren = new T.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    ren.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    const scene = new T.Scene(), cam = new T.PerspectiveCamera(fov, 1, 0.1, 400), labels = [], v = new T.Vector3();
+    const size = () => { const w = box.clientWidth, h = box.clientHeight; if (!w || !h) return; ren.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); };
+    new ResizeObserver(size).observe(box); size();
+    let drag = null;
+    canvas.addEventListener('pointerdown', e => { drag = [e.clientX, e.clientY]; canvas.setPointerCapture(e.pointerId); st.auto = false; });
+    canvas.addEventListener('pointermove', e => { if (!drag) return; st.th -= (e.clientX - drag[0]) * 0.006; st.ph = Math.max(0.08, Math.min(1.5, st.ph - (e.clientY - drag[1]) * 0.005)); drag = [e.clientX, e.clientY]; });
+    canvas.addEventListener('pointerup', () => { drag = null; });
+    canvas.addEventListener('wheel', e => { e.preventDefault(); st.r = Math.max(st.min, Math.min(st.max, st.r * (e.deltaY > 0 ? 1.08 : 0.93))); }, { passive: false });
+    const label = (text, cls) => { const el = document.createElement('span'); el.className = cls || ''; el.textContent = text; lab.appendChild(el); const o = { el, v: new T.Vector3(), on: true, dy: 0, mid: /sun|conj/.test(cls || '') }; labels.push(o); return o; };
+    const draw = () => {
+      const s = Math.sin(st.ph), w = box.clientWidth, h = box.clientHeight, placed = [];
+      cam.position.set(st.c.x + st.r * s * Math.sin(st.th), st.c.y + st.r * Math.cos(st.ph), st.c.z + st.r * s * Math.cos(st.th)); cam.lookAt(st.c);
+      ren.render(scene, cam);
+      for (const l of labels) {
+        v.copy(l.v).project(cam); const show = l.on && v.z < 1;
+        l.el.style.display = show ? '' : 'none';
+        if (!show) continue;
+        // Überlappende Beschriftungen zeilenweise nach unten schieben, weich nachgeführt. Frühere Einträge haben Vorrang.
+        const x = (v.x + 1) / 2 * w, y = (1 - v.y) / 2 * h; let dy = 0;
+        if (l.t !== l.el.textContent) { l.t = l.el.textContent; l.w = l.el.offsetWidth; l.h = l.el.offsetHeight; }
+        const x0 = l.mid ? x - l.w / 2 : x + 10;
+        for (let n = 0; n < 8; n++) { const hit = placed.find(p => x0 < p[1] + 6 && x0 + l.w > p[0] - 6 && Math.abs(y + dy - p[2]) < (l.h + p[3]) / 2); if (!hit) break; dy = hit[2] + (l.h + hit[3]) / 2 - y; }
+        placed.push([x0, x0 + l.w, y + dy, l.h]);
+        l.dy += (dy - l.dy) * 0.25;
+        l.el.style.transform = `translate(${x.toFixed(1)}px,${(y + l.dy).toFixed(1)}px)`;
+      }
+    };
+    return { scene, st, label, draw };
+  }
+  function tex(w, h, paint) { const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d')); return new T.CanvasTexture(c); }
+  const glowTex = () => tex(128, 128, g => { const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.25, 'rgba(255,255,255,.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); });
+  const beamTex = () => tex(4, 64, g => { const gr = g.createLinearGradient(0, 0, 0, 64); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, 'rgba(255,255,255,.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 4, 64); });
+  const glowMat = (map, opacity, color) => ({ map, color: color == null ? 0xffffff : color, opacity, transparent: true, blending: T.AdditiveBlending, depthWrite: false });
+  const glow = (map, size, opacity = 1) => { const s = new T.Sprite(new T.SpriteMaterial(glowMat(map, opacity))); s.scale.set(size, size, 1); return s; };
+  const flat = (geo, mat) => { const m = new T.Mesh(geo, new T.MeshBasicMaterial({ side: T.DoubleSide, ...mat })); m.rotation.x = -Math.PI / 2; return m; };
+  function stars(scene) {
+    const n = 700, p = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) { const r = 70 + Math.random() * 60, a = Math.random() * TAU, b = Math.acos(2 * Math.random() - 1); p[i * 3] = r * Math.sin(b) * Math.cos(a); p[i * 3 + 1] = r * Math.cos(b); p[i * 3 + 2] = r * Math.sin(b) * Math.sin(a); }
+    const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(p, 3));
+    scene.add(new T.Points(g, new T.PointsMaterial({ color: 0xAAB4E8, size: 0.5, transparent: true, opacity: 0.7 })));
+  }
+  const ring = r => { const p = []; for (let i = 0; i <= 96; i++) { const a = i / 96 * TAU; p.push(new T.Vector3(r * Math.sin(a), 0, -r * Math.cos(a))); } return new T.BufferGeometry().setFromPoints(p); };
+  const lineMat = (color, opacity) => new T.LineBasicMaterial({ color, transparent: true, opacity });
+  const seg = pts => new T.BufferGeometry().setFromPoints(pts);
+
+  /* ---------- Zyklus-Spirale: Winkel = Position im Zyklus, Abstand = Kurs (log), Höhe = Zeit ---------- */
+  const rad = p => 1.5 + 2.1 * (Math.log10(Math.max(p, 5)) - Math.log10(5));
+  function pos(i, out) { const t = MT.turns(R.first + i), a = t * TAU, r = rad(R.price[i]); return (out || new T.Vector3()).set(r * Math.sin(a), (t - A.t0) * RISE, -r * Math.cos(a)); }
+  function initSpiral() {
+    const s = A.s = stage('st-spiral', 42, { th: 0.55, ph: 0.8, r: 30, min: 10, max: 60, c: new T.Vector3(0, 2.4, 0), auto: !reduce });
+    const gt = glowTex();
+    stars(s.scene);
+    A.now = s.label('', 'now');
+    const disc = flat(new T.PlaneGeometry(36, 36), glowMat(gt, 0.3, 0x2D49C8)); disc.position.y = -0.06; s.scene.add(disc);
+    [10, 100, 1e3, 1e4, 1e5].forEach((p, k) => { s.scene.add(new T.Line(ring(rad(p)), lineMat(0x2F3B75, 0.9))); if (k % 2 === 0) s.label((p >= 1000 ? p / 1000 + 'k' : p) + ' $', 'dim').v.set(0.25, 0, -rad(p)); });
+    s.scene.add(new T.Line(seg([new T.Vector3(0, 0, 0), new T.Vector3(0, 0, -11.6)]), lineMat(0x8E97C6, 0.8)));
+    s.label('Halving', '').v.set(0, 0, -13);
+    const t1 = 780 / MT.CYCLE_LEN * TAU, t2 = 920 / MT.CYCLE_LEN * TAU, tm = (t1 + t2) / 2;
+    s.scene.add(flat(new T.RingGeometry(1.2, 11.4, 40, 1, Math.PI / 2 - t2, t2 - t1), { color: TEAL, transparent: true, opacity: 0.13, depthWrite: false }));
+    s.label('Typisches Boden-Fenster', 'teal').v.set(12.4 * Math.sin(tm), 0, -12.4 * Math.cos(tm));
+    A.dot = new T.Mesh(new T.SphereGeometry(0.24, 20, 14), new T.MeshBasicMaterial({ color: 0xffffff }));
+    A.halo = glow(gt, 3.4); A.dot.add(A.halo); s.scene.add(A.dot);
+    A.drop = new T.Line(seg([new T.Vector3(), new T.Vector3(), new T.Vector3()]), lineMat(0xEAEEFF, 0.45)); s.scene.add(A.drop);
+    A.marks = MARKS.map(([d, name, low]) => { const m = new T.Mesh(new T.SphereGeometry(0.16, 12, 8), new T.MeshBasicMaterial({ color: low ? TEAL : 0xEF4B5B })); s.scene.add(m); return { day: MT.dn(d), m, l: s.label(name, low ? 'teal' : 'red') }; });
+  }
+  function buildSpiral() {
+    const s = A.s, i0 = Math.max(0, R.total.findIndex(v => v != null)), idx = [];
+    A.i0 = i0; A.t0 = MT.turns(R.first + i0);
+    for (let i = i0; i < R.n - 1; i += STEP) idx.push(i);
+    idx.push(R.n - 1);
+    const pts = idx.map(i => pos(i));
+    // Kurve mit gleichmäßiger Teilung, damit Ring j der Röhre genau zu Datenpunkt j gehört
+    class Path extends T.Curve {
+      getPoint(t, o = new T.Vector3()) { const f = t * (pts.length - 1), k = Math.min(pts.length - 2, Math.floor(f)); return o.copy(pts[k]).lerp(pts[k + 1], f - k); }
+      getPointAt(u, o) { return this.getPoint(u, o); }
+      getTangentAt(u, o) { return this.getTangent(u, o); }
+    }
+    const g = new T.TubeGeometry(new Path(), pts.length - 1, 0.085, 6, false), c = new Float32Array(g.attributes.position.count * 3);
+    for (let j = 0; j < pts.length; j++) { const k = col(R.total[idx[j]]); for (let q = 0; q < 7; q++) { const o = (j * 7 + q) * 3; c[o] = k.r; c[o + 1] = k.g; c[o + 2] = k.b; } }
+    g.setAttribute('color', new T.BufferAttribute(c, 3));
+    const g2 = new T.BufferGeometry(); g2.setAttribute('position', g.attributes.position); g2.setIndex(g.index);
+    const g3 = new T.TubeGeometry(new Path(), pts.length - 1, 0.3, 6, false); g3.setAttribute('color', g.attributes.color);
+    if (A.tube) { s.scene.remove(A.tube, A.rest, A.aura); A.tube.geometry.dispose(); A.rest.geometry.dispose(); A.aura.geometry.dispose(); }
+    A.tube = new T.Mesh(g, new T.MeshBasicMaterial({ vertexColors: true }));
+    A.rest = new T.Mesh(g2, new T.MeshBasicMaterial({ color: 0x2A3466, transparent: true, opacity: 0.55 }));
+    A.aura = new T.Mesh(g3, new T.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.14, blending: T.AdditiveBlending, depthWrite: false })); // Leuchten um die Linie
+    s.scene.add(A.tube, A.rest, A.aura); A.idx = idx; A.n = R.n;
+    for (const k of A.marks) { k.i = k.day - R.first; if (k.i >= i0 && k.i < R.n) { pos(k.i, k.m.position); k.l.v.copy(k.m.position); } }
+    if (!A.years) { A.years = []; for (let y = 2014; ; y += 2) { const i = MT.dn(y + '-01-01') - R.first; if (i >= R.n) break; if (i > i0) { const l = s.label(String(y), 'yr'); pos(i, l.v); A.years.push({ i, l }); } } }
+  }
+  function spiralAt() {
+    const i = Math.max(vi, A.i0), cut = Math.max(0, Math.min(A.idx.length - 1, Math.floor((i - A.i0) / STEP))) * 36, p = pos(i, A.dot.position), sc = R.total[i];
+    A.tube.geometry.setDrawRange(0, cut); A.aura.geometry.setDrawRange(0, cut); A.rest.geometry.setDrawRange(cut, Infinity);
+    A.halo.material.color.copy(col(sc));
+    A.drop.geometry.setFromPoints([p, new T.Vector3(p.x, 0, p.z), new T.Vector3(0, 0, 0)]);
+    A.now.v.copy(p);
+    A.now.el.innerHTML = `<b>${i === R.n - 1 ? 'Heute, ' : ''}${day(R.first + i)}</b><i>${money(R.price[i])}${sc == null ? '' : ', Score ' + Math.floor(sc)}</i>`;
+    for (const k of A.marks) { const on = k.i >= A.i0 && k.i <= i; k.m.visible = on; k.l.on = on; }
+    for (const y of A.years) y.l.on = y.i <= i;
+  }
+
+  /* ---------- Konstellation: Sonne = Gesamtscore, Planeten = Säulen, rechts liegt die Kauf-Achse ---------- */
+  const ang = (p, v) => (v == null ? Math.PI : p.sign * (1 - v / 100) * Math.PI);
+  function initPlanets() {
+    const s = B.s = stage('st-planets', 40, { th: 0, ph: 0.78, r: 26, min: 9, max: 44, c: new T.Vector3(0.9, 0, 0.5), auto: false });
+    const gt = glowTex();
+    stars(s.scene);
+    B.num = s.label('', 'sun');
+    s.scene.add(new T.AmbientLight(0xffffff, 0.5), new T.PointLight(0xffffff, 1.6, 60));
+    // Helles Feld: Score ab 80 (kräftig) und ab 60 (zart), dazu eine Skala am Rand
+    [[0.2, 0.11], [0.4, 0.05]].forEach(([f, o]) => { const m = flat(new T.RingGeometry(2.6, 8.7, 48, 1, -f * Math.PI, 2 * f * Math.PI), { color: TEAL, transparent: true, opacity: o, depthWrite: false }); m.position.y = -0.04; s.scene.add(m); });
+    [80, 60, 40, 20].forEach(v => { const a = (1 - v / 100) * Math.PI, c = Math.cos(a), z = -Math.sin(a); s.scene.add(new T.Line(seg([new T.Vector3(8.5 * c, 0, 8.5 * z), new T.Vector3(8.9 * c, 0, 8.9 * z)]), lineMat(0x8E97C6, 0.8))); s.label(String(v), 'dim').v.set(9.3 * c, 0, 9.3 * z); });
+    B.sun = new T.Mesh(new T.SphereGeometry(1, 32, 20), new T.MeshBasicMaterial({ color: 0xffffff }));
+    B.halo = glow(gt, 4); B.corona = glow(gt, 9, 0.3); s.scene.add(B.sun, B.halo, B.corona);
+    B.beam = flat(new T.PlaneGeometry(7.4, 0.9), glowMat(beamTex(), 0.45, TEAL)); B.beam.position.set(5.4, 0.01, 0);
+    B.axis = new T.Line(seg([new T.Vector3(1.6, 0, 0), new T.Vector3(9.1, 0, 0)]), lineMat(TEAL, 0.7)); s.scene.add(B.beam, B.axis);
+    s.label('Kauf-Achse', 'teal').v.set(9.3, 0, 0); s.label('teuer', 'dim').v.set(-9.6, 0, 0);
+    B.p = PILL.map(([g, name], k) => {
+      const size = 0.34 + MT.WEIGHTS[g] / 100 * 1.1, m = new T.Mesh(new T.SphereGeometry(size, 28, 18), new T.MeshStandardMaterial({ roughness: 0.5, metalness: 0.1 }));
+      const halo = glow(gt, size * 4.2, 0.5), trail = new T.Line(seg([new T.Vector3(), new T.Vector3()]), lineMat(0xffffff, 0.9));
+      s.scene.add(new T.Line(ring(ORB[k]), lineMat(0x34417C, 0.9)), m, halo, trail);
+      return { g, name, m, halo, trail, a: Math.PI, to: Math.PI, sign: k % 2 ? -1 : 1, off: (k % 2 ? -1 : 1) * (size + 1), r: ORB[k], l: s.label(name, '') };
+    });
+    B.moons = ['Pi Cycle', 'Hash Ribbons'].map((name, k) => { const m = new T.Mesh(new T.SphereGeometry(0.15, 12, 8), new T.MeshBasicMaterial({ color: GRAY })); s.scene.add(m); return { m, r: 1.95 + k * 0.32, sp: 0.5 - k * 0.17, l: s.label(name + ' aktiv', 'teal'), on: false }; });
+    B.conj = s.label('Konjunktion', 'conj'); B.conj.v.set(0, 3.4, 0); B.conj.on = false;
+  }
+  function planetsAt() {
+    const i = vi, s = R.total[i], sc = col(s); let all = s != null;
+    B.sun.material.color.copy(sc); B.halo.material.color.copy(sc); B.corona.material.color.copy(sc); B.size = 0.9 + (s || 0) / 100 * 0.4;
+    B.num.el.textContent = s == null ? '' : Math.floor(s);
+    for (const p of B.p) {
+      const v = R.G[p.g][i], c = col(v), v0 = i >= 90 ? R.G[p.g][i - 90] : null, arc = [];
+      p.to = ang(p, v); if (snap) p.a = p.to;
+      p.m.material.color.copy(c); p.m.material.emissive.copy(c).multiplyScalar(0.3); p.halo.material.color.copy(c); p.halo.material.opacity = v == null ? 0 : 0.5;
+      // Spur: der Weg des Planeten in den letzten 90 Tagen
+      const a0 = v0 == null || v == null ? p.to : ang(p, v0);
+      for (let q = 0; q <= 20; q++) { const a = a0 + (p.to - a0) * q / 20; arc.push(new T.Vector3(p.r * Math.cos(a), 0.02, p.r * Math.sin(a))); }
+      p.trail.geometry.setFromPoints(arc); p.trail.material.color.copy(c);
+      p.l.el.textContent = p.name + ' ' + (v == null ? 'ohne Daten' : Math.floor(v)); p.l.el.className = v == null ? 'dim' : '';
+      if (v != null && v < 80) all = false;
+    }
+    B.moons[0].on = !!R.X.piOn[i]; B.moons[1].on = !!R.X.hrOn[i];
+    for (const m of B.moons) { m.m.material.color.set(m.on ? TEAL : GRAY); m.l.on = m.on; }
+    B.conj.on = all; B.axis.material.opacity = all ? 1 : 0.7; B.beam.material.opacity = all ? 0.95 : 0.4; snap = false;
+  }
+
+  function frame(ms) {
+    requestAnimationFrame(frame);
+    if (!ready || !active || !R || document.hidden) return;
+    const t = ms / 1000, dt = Math.min(0.1, t - last), ease = 1 - Math.exp(-dt * 7), beat = reduce ? 0 : Math.sin(t * 2.2); last = t;
+    if (A.s.st.auto) A.s.st.th += dt * 0.05;
+    A.halo.scale.setScalar(3.4 + 0.6 * beat);
+    for (const p of B.p) { p.a += (p.to - p.a) * ease; p.m.position.set(p.r * Math.cos(p.a), 0, p.r * Math.sin(p.a)); p.halo.position.copy(p.m.position); p.l.v.copy(p.m.position); p.l.v.z += p.off; }
+    const size = B.size || 1;
+    B.sun.scale.setScalar(size); B.halo.scale.setScalar(size * 4.2 + (B.conj.on ? 0.9 * beat : 0)); B.corona.scale.setScalar(size * 8.5 + 0.5 * beat);
+    B.moons.forEach((m, k) => { const a = (reduce ? 0 : t * m.sp) + k * 2; m.m.position.set(m.r * Math.cos(a), 0.25 * Math.sin(a * 1.3), m.r * Math.sin(a)); m.l.v.copy(m.m.position); });
+    A.s.draw(); B.s.draw();
+  }
+
+  function init() {
+    if (!T) return false;
+    try { initSpiral(); initPlanets(); } catch (e) { console.warn('3D nicht verfügbar:', e); return false; }
+    ready = true; requestAnimationFrame(frame); return true;
+  }
+  return {
+    init,
+    setData(r) { R = r; if (ready && A.n !== r.n) buildSpiral(); },
+    setIndex(i) { vi = i; if (ready && R) { spiralAt(); planetsAt(); } },
+    setActive(v) { active = v; }
+  };
+})();
+</script>
+<script>
+/* Makro-Terminal · Quant: Zyklus-Symmetrien, Monte-Carlo-Fächer, Signal-Güte */
+const Quant = (() => {
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const nf = (v, d = 0) => (v == null || !isFinite(v) ? '–' : v.toLocaleString('de-DE', { minimumFractionDigits: d, maximumFractionDigits: d }));
+  const usd = v => (v == null ? '–' : nf(v, v < 10 ? 2 : 0) + ' $');
+  const sgn = (v, d = 0) => { if (v == null || !isFinite(v)) return '–'; const r = +v.toFixed(d); return (r > 0 ? '+' : r < 0 ? '−' : '±') + nf(Math.abs(r), d) + ' %'; };
+  const dateDE = d => new Date(d * MT.DAY).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
+  const year = d => new Date(d * MT.DAY).getUTCFullYear();
+  const CC = ['#8E97C6', '#5B8CFF', '#D957AE', '#EAEEFF'], BASE = 946684800;
+  const S = { R: null, mode: 'top', days: 365, pool: 'all', h: 365, x: 100000, cyc: null, mc: null, hl: 0 };
+  const PINK = '#D957AE';
+
+  /* ---------- Rechnen ---------- */
+  function pearson(a, b) {
+    const n = a.length; let ma = 0, mb = 0; for (let i = 0; i < n; i++) { ma += a[i]; mb += b[i]; } ma /= n; mb /= n;
+    let sab = 0, saa = 0, sbb = 0; for (let i = 0; i < n; i++) { const x = a[i] - ma, y = b[i] - mb; sab += x * y; saa += x * x; sbb += y * y; }
+    return saa && sbb ? sab / Math.sqrt(saa * sbb) : null;
+  }
+  function ranks(a) {
+    const idx = Array.from(a, (v, i) => i).sort((x, y) => a[x] - a[y]), r = new Float64Array(a.length);
+    for (let i = 0; i < idx.length;) { let j = i; while (j + 1 < idx.length && a[idx[j + 1]] === a[idx[i]]) j++; for (let k = i; k <= j; k++) r[idx[k]] = (i + j) / 2; i = j + 1; }
+    return r;
+  }
+  const spearman = (a, b) => pearson(ranks(a), ranks(b));
+
+  /* Zyklen: Hoch = höchster Schluss 200 bis 800 Tage nach einem Halving, Tief = tiefster Schluss zwischen zwei Hochs */
+  function cycles(R) {
+    const P = R.price, n = R.n, H = MT.HALVINGS.map(h => h - R.first).filter(h => h + 200 < n);
+    const arg = (a, b, better) => { a = Math.max(0, a); b = Math.min(n - 1, b); let k = a; for (let i = a; i <= b; i++) if (better(P[i], P[k])) k = i; return k; };
+    const hi = (a, b) => arg(a, b, (x, y) => x > y), lo = (a, b) => arg(a, b, (x, y) => x < y);
+    const tops = H.map(h => hi(h + 200, h + 800)), lows = [lo(hi(0, H[0]), H[0])].concat(tops.map((t, k) => lo(t, k + 1 < tops.length ? tops[k + 1] : n - 1)));
+    const C = tops.map((t, k) => { const l = lows[k], e = lows[k + 1], open = k === tops.length - 1; return { low: l, top: t, end: e, open, up: t - l, down: e - t, mult: P[t] / P[l], dd: (P[e] / P[t] - 1) * 100, span: e - l, name: year(R.first + l) + ' bis ' + (open ? 'heute' : year(R.first + e)) }; });
+    // Gleichlauf: Korrelation des Verlaufs seit dem Tief mit dem laufenden Zyklus
+    const cur = C[C.length - 1];
+    for (const c of C) {
+      if (c === cur) { c.corr = null; continue; }
+      const m = Math.min(n - 1 - cur.low, c.span), a = [], b = [];
+      for (let j = 0; j <= m; j += 7) { a.push(Math.log(P[c.low + j] / P[c.low])); b.push(Math.log(P[cur.low + j] / P[cur.low])); }
+      c.corr = pearson(a, b);
+    }
+    return C;
+  }
+
+  /* Monte Carlo: Block-Bootstrap aus echten Tagesrenditen. Fester Startwert, damit die Zahlen nicht bei jedem Aufruf springen. */
+  function rng(seed) { return () => { seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function monteCarlo(R, days, pool, paths = 2000, block = 30) {
+    const n = R.n, P = R.price, ret = new Float64Array(n), zid = R.total[n - 1] == null ? -1 : MT.zone(R.total[n - 1]).id, starts = [];
+    for (let i = 1; i < n; i++) ret[i] = Math.log(P[i] / P[i - 1]);
+    for (let i = Math.max(1, MT.dn(pool === 'zone' ? '2013-01-01' : '2018-01-01') - R.first); i < n - block; i++) if (pool !== 'zone' || (R.total[i] != null && MT.zone(R.total[i]).id === zid)) starts.push(i);
+    if (starts.length < 60) return null;
+    const rnd = rng(R.first + n + days + (pool === 'zone' ? 7 : 0)), steps = Math.ceil(days / 7), grid = Array.from({ length: steps + 1 }, () => new Float64Array(paths));
+    for (let p = 0; p < paths; p++) {
+      let x = 0, s = 0, left = 0;
+      for (let d = 1; d <= days; d++) { if (!left) { s = starts[Math.floor(rnd() * starts.length)]; left = block; } x += ret[s++]; left--; if (d % 7 === 0 || d === days) grid[Math.ceil(d / 7)][p] = x; }
+    }
+    const q = grid.map(g => { const a = Float64Array.from(g).sort(); return [0.05, 0.25, 0.5, 0.75, 0.95].map(f => P[n - 1] * Math.exp(a[Math.floor((paths - 1) * f)])); });
+    return { p0: P[n - 1], days, steps, q, fin: Float64Array.from(grid[steps]).sort(), starts: starts.length, paths, sample: Array.from({ length: Math.min(40, paths) }, (_, p) => grid.map(g => g[p])) };
+  }
+  const probAbove = (mc, price) => { const t = Math.log(price / mc.p0); let k = 0; for (const v of mc.fin) if (v > t) k++; return k / mc.fin.length; };
+
+  /* Signal-Güte: Rangkorrelation zwischen Score und Rendite h Tage später, wöchentliche Stichprobe seit 2013 */
+  const KEYS = [['total', 'Gesamtscore', ''], ['mayer', 'Mayer Multiple', 'Mayer'], ['w200', 'Abstand 200-Wochen-MA', '200W'], ['logres', 'Log-Regression', 'LogReg'], ['mvrv', 'MVRV Z-Score', 'MVRV'], ['fng', 'Fear & Greed', 'F&G'], ['fund', 'Funding Rate', 'Funding'], ['rsi', 'Wochen-RSI', 'RSI'], ['band', 'Bull-Band', 'Band'], ['puell', 'Puell Multiple', 'Puell'], ['ribbon', 'Hash Ribbons', 'Ribbons'], ['cyc', 'Halving-Zyklus', 'Zyklus']];
+  function signals(R, h) {
+    const from = Math.max(0, MT.dn('2013-01-01') - R.first), ser = k => (k === 'total' ? R.total : R.S[k]);
+    const ic = KEYS.map(([k, name]) => {
+      const a = [], b = [], s = ser(k); let first = null;
+      for (let i = from; i + h < R.n; i += 7) if (s[i] != null) { a.push(s[i]); b.push(Math.log(R.price[i + h] / R.price[i])); if (first == null) first = i; }
+      return { k, name, n: a.length, ic: a.length >= 60 ? spearman(a, b) : null, since: first == null ? null : year(R.first + first) };
+    });
+    const mk = KEYS.slice(1), M = mk.map(([ka]) => mk.map(([kb]) => {
+      const a = [], b = []; for (let i = from; i < R.n; i += 7) if (R.S[ka][i] != null && R.S[kb][i] != null) { a.push(R.S[ka][i]); b.push(R.S[kb][i]); }
+      return a.length >= 60 ? spearman(a, b) : null;
+    }));
+    return { ic, short: mk.map(x => x[2]), M };
+  }
+
+  /* ---------- Zyklus-Symmetrien ---------- */
+  let chart = null, cser = [];
+  const cfmt = v => (S.mode === 'top' ? sgn(v) : nf(v, v < 10 ? 1 : 0) + '-fach');
+  function cycRead(p) {
+    const C = S.cyc, cur = C[C.length - 1], R = S.R;
+    if (!p || p.time == null) { $('#q-cyc-read').innerHTML = `<span>Heute ist Tag <b>${nf(R.n - 1 - cur.top)}</b> seit dem Hoch und Tag <b>${nf(R.n - 1 - cur.low)}</b> seit dem Tief</span><span>Kurs zum Hoch <b>${sgn((R.price[R.n - 1] / R.price[cur.top] - 1) * 100)}</b></span>`; return; }
+    $('#q-cyc-read').innerHTML = `<span>Tag <b>${nf(Math.round((p.time - BASE) / 86400))}</b></span>` + cser.map((s, k) => { const v = p.seriesData.get(s); return v ? `<span><span class="dot" style="--c:${CC[k % 4]}"></span>${C[k].name} <b>${cfmt(v.value)}</b></span>` : ''; }).join('');
+  }
+  function drawCycles() {
+    const R = S.R, P = R.price, C = S.cyc = cycles(R), LW = window.LightweightCharts, top = S.mode === 'top', tf = t => 'Tag ' + Math.round((t - BASE) / 86400);
+    if (LW && !chart) {
+      chart = LW.createChart($('#q-cyc'), {
+        autoSize: true, layout: { background: { type: 'solid', color: 'transparent' }, textColor: '#8E97C6', fontFamily: 'Manrope, system-ui, sans-serif', fontSize: 12 },
+        grid: { vertLines: { color: 'rgba(142,151,198,.06)' }, horzLines: { color: 'rgba(142,151,198,.09)' } },
+        rightPriceScale: { borderVisible: false, minimumWidth: 84 }, timeScale: { borderVisible: false, minBarSpacing: 0.02, tickMarkFormatter: tf },
+        crosshair: { mode: 0 }, handleScroll: false, handleScale: false
+      });
+      cser = C.map((c, k) => chart.addLineSeries({ color: CC[k % 4], lineWidth: k === C.length - 1 ? 3 : 2, title: c.name, priceLineVisible: false }));
+      chart.subscribeCrosshairMove(cycRead);
+    }
+    if (chart) {
+      chart.applyOptions({ localization: { locale: 'de-DE', timeFormatter: tf, priceFormatter: cfmt } });
+      chart.priceScale('right').applyOptions({ mode: top ? 0 : 1 });
+      cser.forEach((s, k) => {
+        const c = C[k], a = top ? c.top : c.low, len = top ? Math.min(600, R.n - 1 - a) : (c.open ? R.n - 1 - a : c.span), d = [];
+        for (let j = 0; j <= len; j++) d.push({ time: BASE + j * 86400, value: top ? (P[a + j] / P[a] - 1) * 100 : P[a + j] / P[a] });
+        s.setData(d);
+      });
+      chart.timeScale().fitContent();
+    }
+    cycRead(null);
+    const cell = (i, sub) => `<td>${dateDE(R.first + i)}<small>${sub}</small></td>`;
+    $('#q-cyc-t').innerHTML = C.map((c, k) => `<tr><td><span class="dot" style="--c:${CC[k % 4]}"></span>${c.name}</td>${cell(c.low, usd(P[c.low]))}${cell(c.top, usd(P[c.top]))}<td class="num">${nf(c.up)}</td><td class="num">${c.open ? 'bisher ' : ''}${nf(c.open ? R.n - 1 - c.top : c.down)}</td><td class="num">${c.open ? '–' : nf(c.up / c.down, 1) + ' zu 1'}</td><td class="num">${nf(c.mult, c.mult < 20 ? 1 : 0)}-fach</td><td class="num">${c.open ? 'bisher ' : ''}${sgn(c.dd)}</td><td class="num">${c.open ? '–' : nf(c.span)}</td><td class="num">${c.corr == null ? '–' : nf(c.corr, 2)}</td></tr>`).join('');
+    const done = C.filter(c => !c.open), avg = f => done.reduce((s, c) => s + f(c), 0) / done.length, sp = done.map(c => c.span), cur = C[C.length - 1];
+    $('#q-cyc-note').textContent = `Abgeschlossene Zyklen: im Schnitt ${nf(avg(c => c.up))} Tage aufwärts und ${nf(avg(c => c.down))} Tage abwärts, von Tief zu Tief ${nf(Math.min(...sp))} bis ${nf(Math.max(...sp))} Tage. Das Vielfache vom Tief zum Hoch schrumpfte von Zyklus zu Zyklus: ${C.map(c => nf(c.mult, c.mult < 20 ? 1 : 0) + '-fach').join(', ')}. Der Rückgang nach dem Hoch wurde kleiner: ${done.map(c => sgn(c.dd)).join(', ')}, im laufenden Zyklus bisher ${sgn(cur.dd)}. Das Tief des laufenden Zyklus ist das bisher tiefste seit dem Hoch und kann noch unterschritten werden.`;
+  }
+
+  /* ---------- Monte-Carlo-Fächer ---------- */
+  function drawFan() {
+    const R = S.R, P = R.price, n = R.n, mc = S.mc = monteCarlo(R, S.days, S.pool), box = $('#q-mc');
+    if (!mc) { box.innerHTML = '<p class="sub">Für diese Auswahl gibt es zu wenige Tage in der Historie.</p>'; $('#q-mc-stats').innerHTML = ''; $('#q-mc-prob').textContent = ''; return; }
+    const W = Math.max(520, box.clientWidth), H = 380, m = { l: 6, r: 112, t: 14, b: 26 }, back = 365;
+    let lo = Infinity, hi = 0; for (let i = n - 1 - back; i < n; i++) { lo = Math.min(lo, P[i]); hi = Math.max(hi, P[i]); }
+    for (const q of mc.q) { lo = Math.min(lo, q[0]); hi = Math.max(hi, q[4]); }
+    const L0 = Math.log(lo * 0.92), L1 = Math.log(hi * 1.08), x = d => m.l + (d + back) / (back + mc.days) * (W - m.l - m.r), y = p => m.t + (L1 - Math.log(p)) / (L1 - L0) * (H - m.t - m.b), sd = k => Math.min(mc.days, k * 7);
+    const path = pts => pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('');
+    const edge = a => mc.q.map((q, k) => [x(sd(k)), y(q[a])]), band = (a, b) => path(edge(a).concat(edge(b).reverse())) + 'Z';
+    const hist = []; for (let i = n - 1 - back; i < n; i++) hist.push([x(i - (n - 1)), y(P[i])]);
+    let ticks = []; for (let e = Math.floor(Math.log10(lo)); e <= Math.ceil(Math.log10(hi)); e++) for (const f of [1, 2, 5]) { const v = f * 10 ** e; if (Math.log(v) > L0 && Math.log(v) < L1) ticks.push(v); }
+    if (ticks.length > 8) ticks = ticks.filter(v => !/^2/.test(String(v)));
+    const xt = []; for (let d = -back; d <= mc.days; d++) { const dt = new Date((R.first + n - 1 + d) * MT.DAY); if (dt.getUTCDate() === 1 && dt.getUTCMonth() % 3 === 0) xt.push([d, dt.toLocaleDateString('de-DE', { month: 'short', year: '2-digit', timeZone: 'UTC' })]); }
+    const end = mc.q[mc.steps], lab = (v, t) => `<text class="fl" x="${W - m.r + 8}" y="${(y(v) + 4).toFixed(1)}">${t}</text>`;
+    const hl = mc.sample[S.hl % mc.sample.length], line = s => path(s.map((v, k) => [x(sd(k)), y(mc.p0 * Math.exp(v))]));
+    box.innerHTML = `<svg width="${W}" height="${H}" role="img" aria-label="Fächer der simulierten Kurse">`
+      + ticks.map(v => `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="rgba(142,151,198,.11)"/><text x="${m.l + 4}" y="${(y(v) - 4).toFixed(1)}">${nf(v)} $</text>`).join('')
+      + xt.map(([d, t]) => `<text x="${x(d).toFixed(1)}" y="${H - 7}" text-anchor="middle">${t}</text>`).join('')
+      + `<clipPath id="q-mc-clip"><rect x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}"/></clipPath>`
+      + `<path d="${band(0, 4)}" fill="rgba(91,140,255,.16)"/><path d="${band(1, 3)}" fill="rgba(91,140,255,.3)"/>`
+      + `<g clip-path="url(#q-mc-clip)" fill="none">${mc.sample.map(s => `<path d="${line(s)}" stroke="rgba(170,190,255,.2)"/>`).join('')}<path d="${path(edge(2))}" stroke="#5B8CFF" stroke-width="2.5"/><path d="${line(hl)}" stroke="${PINK}" stroke-width="2"/></g>`
+      + `<path d="${path(hist)}" fill="none" stroke="#EAEEFF" stroke-width="2"/><line x1="${x(0)}" x2="${x(0)}" y1="${m.t}" y2="${H - m.b}" stroke="rgba(234,238,255,.45)" stroke-dasharray="4 4"/><circle cx="${x(0)}" cy="${y(mc.p0)}" r="4" fill="#EAEEFF"/>`
+      + lab(end[4], 'guter Fall') + lab(end[2], 'Mitte') + lab(end[0], 'schlechter Fall') + '</svg>';
+    box.onmousemove = e => {
+      const d = (e.clientX - box.getBoundingClientRect().left - m.l) / (W - m.l - m.r) * (back + mc.days) - back;
+      if (d <= 0) { const i = Math.max(0, n - 1 + Math.round(d)); $('#q-mc-read').innerHTML = `<span>${dateDE(R.first + i)}</span><span>Kurs <b>${usd(P[i])}</b></span>`; return; }
+      const k = Math.min(mc.steps, Math.round(d / 7)), q = mc.q[k];
+      $('#q-mc-read').innerHTML = `<span>${dateDE(R.first + n - 1 + sd(k))}</span><span>schlechter Fall <b>${usd(q[0])}</b></span><span>unteres Viertel <b>${usd(q[1])}</b></span><span><span class="dot" style="--c:#5B8CFF"></span>Mitte <b>${usd(q[2])}</b></span><span>oberes Viertel <b>${usd(q[3])}</b></span><span>guter Fall <b>${usd(q[4])}</b></span><span><span class="dot" style="--c:${PINK}"></span>dieser Verlauf <b>${usd(mc.p0 * Math.exp(hl[k]))}</b></span>`;
+    };
+    box.onmouseleave = () => { $('#q-mc-read').innerHTML = `<span>Heute <b>${usd(mc.p0)}</b></span><span><span class="dot" style="--c:${PINK}"></span>ein einzelner Verlauf, endet bei <b>${usd(mc.p0 * Math.exp(hl[mc.steps]))}</b></span><span><span class="dot" style="--c:#5B8CFF"></span>Mitte aller ${nf(mc.paths)} Verläufe</span><span>gezogen aus ${nf(mc.starts)} echten Tagen</span>`; };
+    box.onmouseleave();
+    $('#q-mc-stats').innerHTML = [['Schlechter Fall', 0, 'nur 1 von 20 Verläufen endet tiefer'], ['Unteres Viertel', 1, 'jeder vierte endet tiefer'], ['Mitte', 2, 'die Hälfte endet höher, die Hälfte tiefer'], ['Oberes Viertel', 3, 'jeder vierte endet höher'], ['Guter Fall', 4, 'nur 1 von 20 Verläufen endet höher']].map(([t, i, note]) => `<div class="stat"><small>${t}</small><b>${usd(end[i])}</b><span>${sgn((end[i] / mc.p0 - 1) * 100)}, ${note}</span></div>`).join('');
+    drawProb();
+  }
+  function drawProb() {
+    const mc = S.mc; if (!mc) return;
+    const a = probAbove(mc, S.x), b = probAbove(mc, mc.p0);
+    $('#q-mc-prob').innerHTML = `Von ${nf(mc.paths)} Verläufen enden nach ${mc.days === 365 ? 'einem Jahr' : 'zwei Jahren'} <b>${nf(a * mc.paths)}</b> über <b>${usd(S.x)}</b>, das sind <b>${nf(a * 100)} %</b>. Über dem heutigen Kurs enden <b>${nf(b * 100)} %</b>.`;
+  }
+
+  /* ---------- Signal-Güte ---------- */
+  function drawSignals() {
+    const g = signals(S.R, S.h), rows = g.ic.slice(0, 1).concat(g.ic.slice(1).sort((a, b) => (b.ic == null ? -9 : b.ic) - (a.ic == null ? -9 : a.ic)));
+    $('#q-ic').innerHTML = rows.map(r => {
+      const w = r.ic == null ? 0 : Math.abs(r.ic) * 50, pos = r.ic >= 0;
+      return `<div class="ic-row"><span>${r.k === 'total' ? '<b>' + r.name + '</b>' : r.name}<small>${nf(r.n)} Wochen${r.since ? ', ab ' + r.since : ''}</small></span><div class="ic-track">${r.ic == null ? '' : `<i style="left:${pos ? 50 : 50 - w}%;width:${w}%;background:${pos ? MT.ZC[3] : MT.ZC[0]}"></i>`}</div><span class="ic-val">${r.ic == null ? 'zu wenige Daten' : (r.ic > 0 ? '+' : r.ic < 0 ? '−' : '') + nf(Math.abs(r.ic), 2)}</span></div>`;
+    }).join('');
+    const tint = v => (v == null ? 'transparent' : `rgba(${v >= 0 ? '91,140,255' : '217,87,174'},${(0.08 + 0.62 * Math.abs(v)).toFixed(2)})`);
+    $('#q-corr').innerHTML = '<tr><th></th>' + g.short.map(s => `<th>${s}</th>`).join('') + '</tr>' + g.M.map((row, i) => `<tr><th class="r">${g.short[i]}</th>` + row.map((v, j) => `<td style="background:${tint(v)}">${i === j ? '' : v == null ? '–' : nf(v, 2)}</td>`).join('') + '</tr>').join('');
+  }
+
+  function render(R) { S.R = R; drawCycles(); drawFan(); drawSignals(); }
+  function init() {
+    const pick = (box, attr, b) => box.querySelectorAll(`[data-${attr}]`).forEach(x => x.setAttribute('aria-pressed', x === b));
+    const on = (id, fn) => $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (b && S.R) fn(b, $(id)); });
+    on('#q-cyc-tools', (b, box) => { S.mode = b.dataset.mode; pick(box, 'mode', b); drawCycles(); });
+    on('#q-mc-tools', (b, box) => { if (b.dataset.next) S.hl++; else if (b.dataset.days) { S.days = +b.dataset.days; pick(box, 'days', b); } else { S.pool = b.dataset.pool; pick(box, 'pool', b); } drawFan(); });
+    on('#q-ic-tools', (b, box) => { S.h = +b.dataset.h; pick(box, 'h', b); drawSignals(); });
+    $('#q-mc-x').addEventListener('input', e => { const v = +e.target.value; if (v > 0) { S.x = v; drawProb(); } });
+    let t = 0; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { if (S.R && !$('#v-quant').hidden) drawFan(); }, 200); });
+  }
+  return { init, render, cycles, monteCarlo, probAbove, signals, spearman };
+})();
+</script>
+<script>
+/* Makro-Terminal · Labor: Zwillings-Tage, Preis-Landkarte, Regel-Prüfstand */
+const Lab = (() => {
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const nf = (v, d = 0) => (v == null || !isFinite(v) ? '–' : v.toLocaleString('de-DE', { minimumFractionDigits: d, maximumFractionDigits: d }));
+  const usd = v => (v == null ? '–' : nf(v, v < 10 ? 2 : 0) + ' $');
+  const sgn = (v, d = 0) => { if (v == null || !isFinite(v)) return '–'; const r = +v.toFixed(d); return (r > 0 ? '+' : r < 0 ? '−' : '±') + nf(Math.abs(r), d) + ' %'; };
+  const dateDE = d => new Date(d * MT.DAY).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
+  const TW = ['#EAEEFF', '#B9CBFF', '#8EABFF', '#5B8CFF', '#3E66CC'], BASE = 946684800, TEAL = '#12E6C1';
+  const S = { R: null, grid: [], gridKey: '', run: 0, rules: [{ v: 'fng', op: '<', x: 20 }, { v: 'w200', op: '<', x: 0 }], two: true, h: 365 };
+  const chartBase = () => ({
+    autoSize: true, layout: { background: { type: 'solid', color: 'transparent' }, textColor: '#8E97C6', fontFamily: 'Manrope, system-ui, sans-serif', fontSize: 12 },
+    grid: { vertLines: { color: 'rgba(142,151,198,.06)' }, horzLines: { color: 'rgba(142,151,198,.09)' } }, crosshair: { mode: 0 }
+  });
+  const quant = (a, f) => a[Math.floor((a.length - 1) * f)];
+
+  /* ---------- Zwillings-Tage: die Tage, an denen alle Indikatoren am ähnlichsten zu heute standen ---------- */
+  const TK = ['mayer', 'w200', 'logres', 'mvrv', 'fng', 'fund', 'rsi', 'band', 'puell', 'ribbon', 'cyc'];
+  function twins(R, k = 5, gap = 120, minAge = 180) {
+    const t = R.n - 1, cand = [], out = [];
+    for (let i = 0; i <= t - minAge; i++) {
+      if (R.total[i] == null) continue;
+      let s = 0, c = 0; for (const key of TK) { const a = R.S[key][i], b = R.S[key][t]; if (a != null && b != null) { s += (a - b) ** 2; c++; } }
+      if (c >= 7) cand.push({ i, d: Math.sqrt(s / c), c });
+    }
+    cand.sort((x, y) => x.d - y.d);
+    for (const w of cand) { if (out.every(o => Math.abs(o.i - w.i) >= gap)) out.push(w); if (out.length === k) break; }
+    return out;
+  }
+  let tChart = null, tSer = [], tIdle = '';
+  function drawTwins() {
+    const R = S.R, P = R.price, t = R.n - 1, tw = twins(R), LW = window.LightweightCharts, tf = x => 'Tag ' + Math.round((x - BASE) / 86400), fmt = v => sgn((v - 1) * 100);
+    if (LW && !tChart) {
+      tChart = LW.createChart($('#l-tw'), { ...chartBase(), rightPriceScale: { borderVisible: false, minimumWidth: 84, mode: 1 }, timeScale: { borderVisible: false, minBarSpacing: 0.02, tickMarkFormatter: tf }, handleScroll: false, handleScale: false, localization: { locale: 'de-DE', timeFormatter: tf, priceFormatter: fmt } });
+      tSer = TW.map((c, k) => tChart.addLineSeries({ color: c, lineWidth: k ? 2 : 3, priceLineVisible: false }));
+      tChart.subscribeCrosshairMove(p => { $('#l-tw-read').innerHTML = !p || p.time == null ? tIdle : `<span>Tag <b>${nf(Math.round((p.time - BASE) / 86400))}</b> danach</span>` + tSer.map((s, k) => { const v = p.seriesData.get(s); return v ? `<span><span class="dot" style="--c:${TW[k]}"></span>${s.options().title} <b>${fmt(v.value)}</b></span>` : ''; }).join(''); });
+    }
+    if (tChart) {
+      tSer.forEach((s, k) => { const w = tw[k], d = []; if (w) for (let j = 0; j <= 730 && w.i + j <= t; j++) d.push({ time: BASE + j * 86400, value: P[w.i + j] / P[w.i] }); s.setData(d); s.applyOptions({ title: w ? dateDE(R.first + w.i) : '' }); });
+      tChart.timeScale().fitContent();
+    }
+    let cnt = 0; for (const key of TK) if (R.S[key][t] != null) cnt++;
+    $('#l-tw-read').innerHTML = tIdle = `<span>Heute: Score <b>${nf(R.total[t])}</b> bei <b>${usd(P[t])}</b></span><span>verglichen werden <b>${cnt}</b> Indikatoren</span>`;
+    const f = (w, h) => (w.i + h <= t ? sgn((P[w.i + h] / P[w.i] - 1) * 100) : 'noch offen');
+    $('#l-tw-t').innerHTML = tw.map((w, k) => `<tr><td><span class="dot" style="--c:${TW[k]}"></span>${dateDE(R.first + w.i)}</td><td class="num">${usd(P[w.i])}</td><td class="num">${nf(R.total[w.i])}</td><td class="num">${nf(w.d, 1)} Punkte</td><td class="num">${f(w, 90)}</td><td class="num">${f(w, 365)}</td><td class="num">${f(w, 730)}</td><td class="num"><button class="tg" data-go="${w.i}">Im Kosmos ansehen</button></td></tr>`).join('');
+    const y = tw.filter(w => w.i + 365 <= t).map(w => P[w.i + 365] / P[w.i]), up = y.filter(v => v > 1).length;
+    $('#l-tw-note').textContent = y.length ? `Ein Jahr nach diesen ${y.length} Tagen stand der Kurs ${up}-mal höher und ${y.length - up}-mal tiefer. Fünf Fälle sind keine Statistik, sie zeigen nur, wie es schon einmal weiterging.` : '';
+  }
+
+  /* ---------- Preis-Landkarte: Score und Indikatoren, wenn der Kurs heute woanders stünde ---------- */
+  const LO = 0.35, HI = 3, STEPS = 25;
+  function startGrid() {
+    const R = S.R, p0 = R.price[R.n - 1], key = R.n + ':' + Math.round(p0 / 250);
+    if (key === S.gridKey) { drawMap(); return; }
+    S.gridKey = key; S.grid = []; const run = ++S.run, D = MT.assemble(MT.state.raw);
+    const step = k => {
+      if (run !== S.run) return;
+      const p = p0 * Math.exp(Math.log(LO) + Math.log(HI / LO) * k / (STEPS - 1)); D.price[D.n - 1] = p;
+      const r = MT.compute(D, MT.state.opt), t = r.n - 1;
+      S.grid.push({ p, score: r.total[t], mayer: r.X.mayer[t], rsi: r.X.rsi[t], puell: r.X.puell[t], mvrvZ: r.X.mvrvZ[t] });
+      drawMap();
+      if (k + 1 < STEPS) setTimeout(() => step(k + 1), 0);
+    };
+    step(0);
+  }
+  function cross(key, target) {
+    const g = S.grid;
+    for (let k = 1; k < g.length; k++) { const a = g[k - 1][key], b = g[k][key]; if (a == null || b == null || a === b || (a - target) * (b - target) > 0) continue; return Math.exp(Math.log(g[k - 1].p) + (target - a) / (b - a) * Math.log(g[k].p / g[k - 1].p)); }
+    return null;
+  }
+  const scoreAt = p => { const g = S.grid; for (let k = 1; k < g.length; k++) if (p <= g[k].p) { const f = Math.log(p / g[k - 1].p) / Math.log(g[k].p / g[k - 1].p); return g[k - 1].score + f * (g[k].score - g[k - 1].score); } return null; };
+  function drawMap() {
+    const R = S.R, X = R.X, t = R.n - 1, p0 = R.price[t], g = S.grid, done = g.length === STEPS, box = $('#l-map'), ZC = MT.ZC;
+    $('#l-map-st').textContent = done ? '' : `rechnet, ${g.length} von ${STEPS} Kursen`;
+    const W = Math.max(440, box.clientWidth), H = 270, m = { l: 8, r: 8, t: 10, b: 26 }, l0 = Math.log(p0 * LO), l1 = Math.log(p0 * HI);
+    const x = p => m.l + (Math.log(p) - l0) / (l1 - l0) * (W - m.l - m.r), y = s => m.t + (100 - s) / 100 * (H - m.t - m.b);
+    const pts = g.filter(q => q.score != null), ticks = [], sL = pts.length ? pts[0].score : -1, zr = z => sL >= z.id * 20 && (sL < z.id * 20 + 20 || z.id === 4);
+    for (let e = 3; e <= 7; e++) for (const f of [1, 1.5, 2, 3, 5, 7]) { const v = f * 10 ** e; if (v > p0 * LO * 1.05 && v < p0 * HI * 0.95) ticks.push(v); }
+    box.innerHTML = `<svg width="${W}" height="${H}" role="img" aria-label="Makro-Score nach Kurs">`
+      + MT.ZONES.map(z => `<rect x="${m.l}" y="${y(z.id * 20 + 20)}" width="${W - m.l - m.r}" height="${y(z.id * 20) - y(z.id * 20 + 20)}" fill="${ZC[z.id]}" opacity=".13"/><text x="${zr(z) ? W - m.r - 8 : m.l + 8}" y="${y(z.id * 20 + 10) + 4}"${zr(z) ? ' text-anchor="end"' : ''}>${z.name}</text>`).join('')
+      + ticks.map(v => `<line x1="${x(v).toFixed(1)}" x2="${x(v).toFixed(1)}" y1="${m.t}" y2="${H - m.b}" stroke="rgba(142,151,198,.12)"/><text x="${x(v).toFixed(1)}" y="${H - 7}" text-anchor="middle">${nf(v)} $</text>`).join('')
+      + (pts.length > 1 ? `<path d="${pts.map((q, i) => (i ? 'L' : 'M') + x(q.p).toFixed(1) + ' ' + y(q.score).toFixed(1)).join('')}" fill="none" stroke="#EAEEFF" stroke-width="2.5"/>` : '')
+      + `<line x1="${x(p0)}" x2="${x(p0)}" y1="${m.t}" y2="${H - m.b}" stroke="rgba(234,238,255,.5)" stroke-dasharray="4 4"/>${R.total[t] == null ? '' : `<circle cx="${x(p0)}" cy="${y(R.total[t])}" r="5" fill="#EAEEFF"/>`}<text class="fl" x="${x(p0) + 8}" y="${R.total[t] >= 50 ? H - m.b - 8 : m.t + 14}">Heute</text></svg>`;
+    const read = p => { const s = p && done ? scoreAt(p) : null; $('#l-map-read').innerHTML = s == null ? `<span>Heute <b>${usd(p0)}</b></span><span>Score <b>${nf(R.total[t])}</b> ${MT.zone(R.total[t]).name}</span>` : `<span>Wenn der Kurs heute bei <b>${usd(p)}</b> stünde (${sgn((p / p0 - 1) * 100)})</span><span>Score <b style="color:${ZC[MT.zone(s).id]}">${nf(s)}</b> ${MT.zone(s).name}</span>`; };
+    box.onmousemove = e => read(Math.exp(l0 + (e.clientX - box.getBoundingClientRect().left - m.l) / (W - m.l - m.r) * (l1 - l0)));
+    box.onmouseleave = () => read(null); read(null);
+    // Leiter der Kursmarken
+    const L = [{ p: p0, text: 'Heutiger Kurs', now: true }], add = (p, text, c) => { if (p != null && isFinite(p) && p > p0 * LO && p < p0 * HI) L.push({ p, text, c }); };
+    add(X.sma1400[t], '200-Wochen-MA', '#EAEEFF'); add(X.realP[t], 'Realized Price, der Einstandspreis aller Coins', '#D957AE');
+    add(X.sma200[t], '200-Tage-Schnitt, hier steht das Mayer Multiple bei 1,0'); add(X.bandHi[t], 'Oberkante des Bull-Bands', '#5B8CFF'); add(X.bandLo[t], 'Unterkante des Bull-Bands', '#5B8CFF');
+    add(X.logMid[t], 'Trendlinie der Log-Regression'); add(X.logLo[t], 'Unteres Band der Log-Regression');
+    if (done) {
+      [[80, 4], [60, 3], [40, 2], [20, 1]].forEach(([v, id]) => add(cross('score', v), `Score-Grenze ${v}: unter diesem Kurs beginnt „${MT.ZONES.find(z => z.id === id).name}“`, ZC[id]));
+      add(cross('mayer', 0.8), 'Mayer Multiple fällt auf 0,8'); add(cross('rsi', 30), 'Wochen-RSI fällt auf 30'); add(cross('puell', 0.5), 'Puell Multiple fällt auf 0,5'); add(cross('mvrvZ', 0), 'MVRV Z-Score fällt auf 0');
+    }
+    L.sort((a, b) => b.p - a.p);
+    $('#l-map-t').innerHTML = L.map(r => `<tr${r.now ? ' class="now"' : ''}><td class="num"><b>${usd(r.p)}</b></td><td class="num">${r.now ? '' : sgn((r.p / p0 - 1) * 100)}</td><td>${r.c ? `<span class="dot" style="--c:${r.c}"></span>` : ''}${r.text}</td></tr>`).join('');
+  }
+
+  /* ---------- Regel-Prüfstand ---------- */
+  const pc = a => a.map(v => (v == null ? null : (v - 1) * 100));
+  const VARS = {
+    fng: ['Fear & Greed Index', R => R.X.fng], mayer: ['Mayer Multiple', R => R.X.mayer], rsi: ['Wochen-RSI', R => R.X.rsi], mvrv: ['MVRV Z-Score', R => R.X.mvrvZ],
+    w200: ['Kurs zum 200-Wochen-MA in %', R => pc(R.X.w200)], real: ['Kurs zum Realized Price in %', R => pc(R.X.mvrvR)], puell: ['Puell Multiple', R => R.X.puell],
+    fund: ['Funding Rate in % je 8 Stunden', R => R.X.fund7.map(v => (v == null ? null : v * 100))],
+    dd: ['Abstand zum Allzeithoch in %', R => { let mx = 0; return R.price.map(p => { mx = Math.max(mx, p); return (p / mx - 1) * 100; }); }],
+    cyc: ['Tage seit dem Halving', R => R.X.cycDay], score: ['Makro-Score', R => R.total]
+  };
+  function evalRule(R, rules) {
+    const n = R.n, cs = rules.map(c => ({ a: VARS[c.v][1](R), lt: c.op === '<', x: c.x })), ok = new Uint8Array(n), has = new Uint8Array(n);
+    for (let i = 0; i < n; i++) { let h = 1, o = 1; for (const c of cs) { const v = c.a[i]; if (v == null) { h = 0; break; } if (c.lt ? !(v < c.x) : !(v > c.x)) o = 0; } has[i] = h; ok[i] = h && o ? 1 : 0; }
+    return { ok, has };
+  }
+  const stat = a => { if (a.length < 20) return { n: a.length }; a.sort((x, y) => x - y); return { n: a.length, med: quant(a, 0.5), lo: quant(a, 0.1), hi: quant(a, 0.9), pos: a.filter(v => v > 1).length / a.length }; };
+  function ruleStats(R, m, h, from, to) {
+    const a = [], b = []; let days = 0, ep = 0, last = -99;
+    for (let i = Math.max(0, from); i < Math.min(R.n, to); i++) {
+      if (!m.has[i]) continue;
+      if (m.ok[i]) { days++; if (i - last > 30) ep++; last = i; }
+      if (i + h < R.n) { const r = R.price[i + h] / R.price[i]; b.push(r); if (m.ok[i]) a.push(r); }
+    }
+    return { days, ep, rule: stat(a), all: stat(b) };
+  }
+  let rChart = null, rSer = null;
+  function drawRule() {
+    const R = S.R, t = R.n - 1, rules = S.rules.slice(0, S.two ? 2 : 1), m = evalRule(R, rules), LW = window.LightweightCharts, cut = MT.dn('2019-01-01') - R.first;
+    if (LW && !rChart) {
+      rChart = LW.createChart($('#l-ru'), { ...chartBase(), rightPriceScale: { borderVisible: false, minimumWidth: 84, mode: 1 }, timeScale: { borderVisible: false, minBarSpacing: 0.02 }, localization: { locale: 'de-DE', priceFormatter: p => nf(p, p < 10 ? 2 : 0) + ' $' } });
+      rSer = rChart.addLineSeries({ lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
+    }
+    let first = 0; while (first < t && !m.has[first]) first++;
+    if (rChart) { const d = []; for (let i = first; i <= t; i++) d.push({ time: (R.first + i) * 86400, value: R.price[i], color: m.ok[i] ? TEAL : 'rgba(142,151,198,.38)' }); rSer.setData(d); const mk = []; let lp = -99; for (let i = first; i <= t; i++) if (m.ok[i]) { if (i - lp > 30) mk.push({ time: (R.first + i) * 86400, position: 'belowBar', color: TEAL, shape: 'arrowUp', size: 1 }); lp = i; } rSer.setMarkers(mk.length <= 60 ? mk : []); rChart.timeScale().fitContent(); }
+    const hT = S.h === 90 ? '90 Tage' : S.h === 365 ? 'Ein Jahr' : 'Zwei Jahre', rows = [['Gesamt', 0, R.n], ['bis 2018', 0, cut], ['ab 2019', cut, R.n]].map(([name, a, b]) => [name, ruleStats(R, m, S.h, a, b)]);
+    const cell = s => (s.med == null ? '<td class="num">zu wenige Tage</td><td class="num">–</td><td class="num">–</td>' : `<td class="num"><b>${sgn((s.med - 1) * 100)}</b></td><td class="num">${sgn((s.lo - 1) * 100)} bis ${sgn((s.hi - 1) * 100)}</td><td class="num">${nf(s.pos * 100)} %</td>`);
+    $('#l-ru-t').innerHTML = rows.map(([name, s]) => `<tr><td>${name}</td><td class="num">${nf(s.days)}</td><td class="num">${nf(s.ep)}</td>${cell(s.rule)}<td class="num">${s.all.med == null ? '–' : sgn((s.all.med - 1) * 100)}</td><td class="num">${s.all.pos == null ? '–' : nf(s.all.pos * 100) + ' %'}</td></tr>`).join('');
+    const g = rows[0][1], txt = rules.map(c => `${VARS[c.v][0]} ${c.op === '<' ? 'unter' : 'über'} ${c.x.toLocaleString('de-DE', { maximumFractionDigits: 2 }).replace('-', '−')}`).join(' und ');
+    let lastDay = -1; for (let i = t; i >= 0; i--) if (m.ok[i]) { lastDay = i; break; }
+    $('#l-ru-read').innerHTML = `<span>Regel: <b>${txt}</b></span><span>Gilt heute: <b style="color:${m.ok[t] ? TEAL : 'inherit'}">${m.ok[t] ? 'ja' : 'nein'}</b></span><span>${lastDay < 0 ? 'Galt noch nie' : m.ok[t] ? '' : 'Zuletzt am <b>' + dateDE(R.first + lastDay) + '</b>'}</span><span>Daten ab ${dateDE(R.first + first)}</span>`;
+    $('#l-ru-note').textContent = !m.has[t] && first === t ? 'Für diese Größe fehlen gerade die Daten.' : g.days === 0 ? 'Diese Regel galt an keinem Tag.' : `Die Regel galt an ${nf(g.days)} Tagen in ${g.ep === 1 ? 'einer einzigen Phase' : nf(g.ep) + ' getrennten Phasen'}.` + (g.rule.med == null ? ` Auswertbar sind davon erst ${nf(g.rule.n)} Tage, zu wenige für eine Aussage.` : (g.rule.n < g.days ? ` Ausgewertet sind ${nf(g.rule.n)} davon, bei den übrigen ist die Zeit noch nicht um.` : '') + ` ${hT} später stand der Kurs im Median ${sgn((g.rule.med - 1) * 100)}, an allen Tagen im selben Zeitraum ${sgn((g.all.med - 1) * 100)}.`) + (g.ep < 5 ? ' Das sind sehr wenige Phasen, das Ergebnis kann Zufall sein.' : '');
+  }
+  function syncForm() {
+    S.rules.forEach((c, k) => { $('#l-v' + k).value = c.v; $('#l-o' + k).value = c.op; $('#l-x' + k).value = c.x; });
+    $('#l-two').checked = S.two; $('#l-row1').style.opacity = S.two ? 1 : 0.4;
+  }
+
+  function render(R) { S.R = R; drawTwins(); startGrid(); drawRule(); }
+  function init() {
+    const opts = Object.keys(VARS).map(k => `<option value="${k}">${VARS[k][0]}</option>`).join('');
+    [0, 1].forEach(k => { $('#l-v' + k).innerHTML = opts; });
+    syncForm();
+    $('#l-ru-form').addEventListener('input', () => {
+      S.rules.forEach((c, k) => { c.v = $('#l-v' + k).value; c.op = $('#l-o' + k).value; const x = parseFloat($('#l-x' + k).value); if (isFinite(x)) c.x = x; });
+      S.two = $('#l-two').checked; $('#l-row1').style.opacity = S.two ? 1 : 0.4; if (S.R) drawRule();
+    });
+    $('#l-ru-pre').addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      const r = b.dataset.pre.split(';').map(s => { const [v, op, x] = s.split(','); return { v, op, x: +x }; });
+      S.rules[0] = r[0]; if (r[1]) S.rules[1] = r[1]; S.two = r.length > 1; syncForm(); if (S.R) drawRule();
+    });
+    $('#l-ru-h').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.h = +b.dataset.h; $('#l-ru-h').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); if (S.R) drawRule(); });
+    $('#l-tw-t').addEventListener('click', e => { const b = e.target.closest('button'); if (b && window.MTgo) window.MTgo(+b.dataset.go); });
+    let tm = 0; window.addEventListener('resize', () => { clearTimeout(tm); tm = setTimeout(() => { if (S.R && !$('#v-labor').hidden) drawMap(); }, 200); });
+  }
+  return { init, render, twins, evalRule, ruleStats, VARS };
+})();
+</script>
+<script>
+/* Makro-Terminal · Oberfläche: Kosmos, Analyse, Zeitmaschine */
+(() => {
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const ZC = MT.ZC, WORD = ['überhitzt', 'teuer', 'neutral', 'günstig', 'extrem günstig'];
+  const nf = (v, d = 0) => (v == null ? '–' : v.toLocaleString('de-DE', { minimumFractionDigits: d, maximumFractionDigits: d }));
+  const usd = v => (v == null ? '–' : nf(v, v < 10 ? 2 : 0) + ' $');
+  const sgn = (v, d = 1) => { if (v == null) return '–'; const r = +v.toFixed(d); return (r > 0 ? '+' : r < 0 ? '−' : '±') + nf(Math.abs(r), d) + ' %'; };
+  const dateDE = d => new Date(d * MT.DAY).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
+  const sc = v => (v == null ? '–' : String(Math.floor(v)));
+  const zc = v => (v == null ? '#8E97C6' : ZC[MT.zone(v).id]);
+  const scoreColor = (s, a = 1) => { if (s == null) return `rgba(142,151,198,${0.55 * a})`; const c = MT.ramp(s); return `rgba(${c[0]},${c[1]},${c[2]},${a})`; };
+  const bar = v => `<div class="bar"><i style="width:${v == null ? 0 : Math.max(2, v)}%;background:${scoreColor(v)}"></i></div>`;
+  let fwd1 = null; // Kursverlauf ein Jahr nach jeder Zone, für die Zeile unter dem Score
+  const buyText = z => { const s = fwd1 && fwd1[z.id]; return s && s.pos != null ? `Ein Jahr später stand der Kurs an ${nf(s.pos * 100)} % solcher Tage höher, im Median ${sgn((s.med - 1) * 100, 0)}` : ''; };
+
+  const PILLARS = [
+    { g: 'val', name: 'Bewertung', short: 'Bewertung', sub: 'Kurs und On-Chain' },
+    { g: 'sent', name: 'Positionierung und Sentiment', short: 'Sentiment', sub: 'Funding Rate, Fear & Greed' },
+    { g: 'mom', name: 'Momentum und Trend', short: 'Momentum', sub: 'Wochen-RSI, Bull-Band' },
+    { g: 'miner', name: 'Miner', short: 'Miner', sub: 'Puell Multiple, Hash Ribbons' },
+    { g: 'cyc', name: 'Zyklus', short: 'Zyklus', sub: 'Position im Halving-Zyklus' }
+  ];
+  const IND = [
+    { g: 'val', s: 'mayer', x: 'mayer', name: 'Mayer Multiple', sub: 'Kurs geteilt durch den 200-Tage-Schnitt', f: v => nf(v, 2) },
+    { g: 'val', s: 'w200', x: 'w200', name: 'Abstand zum 200-Wochen-MA', sub: 'Kurs gegen den Schnitt der letzten 200 Wochen', f: v => sgn((v - 1) * 100) },
+    { g: 'val', s: 'logres', x: 'logRes', name: 'Log-Regression', sub: 'Abstand zur langfristigen Trendlinie', f: v => sgn((Math.exp(v) - 1) * 100) },
+    { g: 'val', s: 'mvrv', x: 'mvrvZ', name: 'MVRV Z-Score', sub: (R, i) => 'Marktwert gegen Einstandswert, Realized Price ' + usd(R.X.realP[i]), f: v => nf(v, 2) },
+    { g: 'sent', s: 'fng', x: 'fng', name: 'Fear & Greed Index', sub: 'Stimmung von 0 (Angst) bis 100 (Gier)', f: v => nf(v) },
+    { g: 'sent', s: 'fund', x: 'fund7', name: 'Funding Rate', sub: 'Gebühr zwischen Long und Short je 8 Stunden, 7-Tage-Schnitt', f: v => nf(v * 100, 4) + ' %' },
+    { g: 'mom', s: 'rsi', x: 'rsi', name: 'Wochen-RSI', sub: 'Stärke der letzten 14 Wochen, laufende Woche vorläufig', f: v => nf(v) },
+    { g: 'mom', s: 'band', x: 'bandRatio', name: 'Bull Market Support Band', sub: 'Kurs gegen 20-Wochen-SMA und 21-Wochen-EMA, laufende Woche vorläufig', f: v => sgn((v - 1) * 100) },
+    { g: 'miner', s: 'puell', x: 'puell', name: 'Puell Multiple', sub: 'Miner-Ausschüttung gegen ihren Jahresschnitt', f: v => nf(v, 2) },
+    { g: 'miner', s: 'ribbon', x: 'ribbon', name: 'Hash Ribbons', sub: '30-Tage- gegen 60-Tage-Schnitt der Hashrate', f: v => (v < 1 ? 'Kapitulation' : 'Normal') + ' (' + nf(v, 3) + ')' },
+    { g: 'cyc', s: 'cyc', x: 'cycDay', name: 'Halving-Zyklus', sub: 'Feste Annahme aus drei Zyklen, Tag von rund 1.430', f: v => 'Tag ' + nf(v) }
+  ];
+  const HIST = [['2013-11-30', 'Hoch'], ['2015-01-14', 'Tief'], ['2017-12-17', 'Hoch'], ['2018-12-15', 'Tief'], ['2020-03-16', 'Corona-Crash'], ['2021-11-10', 'Hoch'], ['2022-11-21', 'Tief'], ['2025-10-06', 'Hoch']];
+
+  /* Zustand: R0 = letzte Berechnung, vi = gewählter Tag der Zeitmaschine (null = heute, läuft mit) */
+  let R0 = null, vi = null, i0 = 0, tab = 'kosmos', has3d = false, playing = false, playPos = 0, lastMs = 0;
+  const cur = () => (vi == null ? R0.n - 1 : Math.min(vi, R0.n - 1));
+
+  /* ---------- Kopfzeile ---------- */
+  function renderTicker(R) {
+    const live = MT.state.raw.live, ch = live && live.chg24, el = $('#chg');
+    $('#price').textContent = usd(R.price[R.n - 1]);
+    el.textContent = ch == null ? '' : sgn(ch, 2) + ' in 24 h'; el.className = ch == null ? 'mu' : ch >= 0 ? 'up' : 'down';
+  }
+
+  /* ---------- Score-Anzeige (Analyse) ---------- */
+  const pt = (s, r) => { const a = Math.PI * (1 - s / 100); return [120 + r * Math.cos(a), 118 - r * Math.sin(a)]; };
+  function gauge(s) {
+    const id = s == null ? -1 : MT.zone(s).id;
+    $('#g-arc').innerHTML = ZC.map((c, k) => {
+      const [x0, y0] = pt(k * 20 + 1, 100), [x1, y1] = pt(k * 20 + 19, 100);
+      return `<path d="M${x0.toFixed(1)} ${y0.toFixed(1)}A100 100 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}" fill="none" stroke="${c}" stroke-width="13" opacity="${k === id ? 1 : 0.22}"/>`;
+    }).join('');
+    const m = $('#g-mark');
+    if (s == null) { m.setAttribute('opacity', 0); return; }
+    const [a, b] = pt(s, 87), [c, d] = pt(s, 113);
+    m.setAttribute('opacity', 1); m.setAttribute('x1', a); m.setAttribute('y1', b); m.setAttribute('x2', c); m.setAttribute('y2', d);
+  }
+  function renderHero(R, i) {
+    const s = R.total[i], z = MT.zone(s), ag = R.agree[i];
+    gauge(s);
+    $('#g-num').textContent = nf(s, 1);
+    $('#zone').textContent = z.name; $('#zone').style.color = ZC[z.id];
+    $('#buy').textContent = buyText(z);
+    $('#trend').textContent = `7 Tage davor ${sc(R.total[i - 7])}, 30 Tage davor ${sc(R.total[i - 30])}, ein Jahr davor ${sc(R.total[i - 365])}`;
+    $('#agree').textContent = `Einigkeit der Säulen: ${nf(ag)} % (${ag >= 80 ? 'hoch' : ag >= 60 ? 'mittel' : 'niedrig'})`;
+    $('#chips').innerHTML = [['Pi Cycle Bottom', R.X.piOn[i]], ['Hash-Ribbons-Kaufsignal', R.X.hrOn[i]]]
+      .map(([n, on]) => `<span class="chip${on ? ' on' : ''}">${n}: ${on ? 'aktiv, +5' : 'kein Signal'}</span>`).join('');
+    $('#pillars').innerHTML = PILLARS.map(p => {
+      const v = R.G[p.g][i];
+      return `<div class="pl"><span>${p.name}<small>${p.sub}</small></span><span class="w">${MT.WEIGHTS[p.g]} %</span>${bar(v)}<b style="color:${zc(v)}">${sc(v)}</b></div>`;
+    }).join('');
+  }
+
+  /* ---------- Kosmos-Ablesung unter der Konstellation ---------- */
+  function renderKos(R, i) {
+    const s = R.total[i], z = MT.zone(s);
+    $('#k-num').textContent = nf(s, 1); $('#k-num').style.color = ZC[z.id];
+    $('#k-zone').textContent = z.name; $('#k-buy').textContent = buyText(z);
+    $('#k-list').innerHTML = PILLARS.map(p => { const v = R.G[p.g][i]; return `<div style="--c:${zc(v)}"><b>${sc(v)}</b>${p.short}</div>`; }).join('');
+  }
+
+  function renderTables(R, i) {
+    let html = '', last = '';
+    for (const d of IND) {
+      if (d.g !== last) { const p = PILLARS.find(q => q.g === d.g); html += `<tr class="grp"><td colspan="4">${p.name}<span>Gewicht ${MT.WEIGHTS[d.g]} %, Score ${sc(R.G[d.g][i])}</span></td></tr>`; last = d.g; }
+      const v = R.X[d.x][i], s = R.S[d.s][i], sub = typeof d.sub === 'function' ? d.sub(R, i) : d.sub;
+      html += `<tr><td>${d.name}<small>${sub}</small></td><td class="num">${v == null ? '–' : d.f(v)}</td><td class="sc"><div>${bar(s)}<b>${sc(s)}</b></div></td><td><span class="dot" style="--c:${zc(s)}"></span>${s == null ? 'keine Daten' : WORD[MT.zone(s).id]}</td></tr>`;
+    }
+    $('#ind').innerHTML = html;
+    $('#asof').textContent = 'Stand ' + dateDE(R.first + i) + (i === R.n - 1 ? ', On-Chain-Daten bis ' + dateDE(R.first + R.lastCM) : '');
+  }
+  function renderHist(R) {
+    const row = (k, top, label) => { const s = R.total[k]; return `<tr><td>${top}<small>${label}</small></td><td class="num">${usd(R.price[k])}</td><td class="num"><b>${sc(s)}</b></td><td><span class="dot" style="--c:${zc(s)}"></span>${s == null ? '–' : MT.zone(s).name}</td></tr>`; };
+    $('#hist').innerHTML = HIST.map(([d, label]) => { const k = MT.dn(d) - R.first; return row(k, dateDE(R.first + k), label); }).join('') + row(R.n - 1, 'Heute', dateDE(R.first + R.n - 1));
+    $('#scale').innerHTML = MT.ZONES.slice().reverse().map((z, k) => `<span style="--c:${ZC[z.id]}">${k * 20} bis ${k * 20 + 20}: ${z.name}</span>`).join('');
+  }
+
+  /* ---------- Charts ---------- */
+  let chart, chart2, sPrice, sScore, sHist, ov = {}, drawnN = 0, fitted = false;
+  const T = i => (R0.first + i) * 86400;
+  function buildCharts() {
+    const LW = window.LightweightCharts; if (!LW) return false;
+    const cross = { color: 'rgba(234,238,255,.35)', labelBackgroundColor: '#222B58' };
+    const base = {
+      autoSize: true,
+      layout: { background: { type: 'solid', color: 'transparent' }, textColor: '#8E97C6', fontFamily: 'Manrope, system-ui, sans-serif', fontSize: 12 },
+      grid: { vertLines: { color: 'rgba(142,151,198,.06)' }, horzLines: { color: 'rgba(142,151,198,.09)' } },
+      rightPriceScale: { borderVisible: false, minimumWidth: 78 }, timeScale: { borderVisible: false, rightOffset: 8, minBarSpacing: 0.02 },
+      crosshair: { mode: 0, vertLine: cross, horzLine: cross }
+    };
+    chart = LW.createChart($('#c-price'), { ...base, rightPriceScale: { ...base.rightPriceScale, mode: 1 }, localization: { locale: 'de-DE', priceFormatter: p => (p >= 1000 ? nf(p / 1000, p >= 10000 ? 0 : 1) + ' Tsd.' : nf(p, p < 10 ? 2 : 0)) } });
+    const line = (color, o = {}) => chart.addLineSeries({ color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false, ...o });
+    ov.log = [line('rgba(142,151,198,.6)', { lineStyle: 1 }), line('rgba(142,151,198,.4)', { lineStyle: 1 }), line('rgba(142,151,198,.6)', { lineStyle: 1 })];
+    ov.band = [line('#5B8CFF'), line('#5B8CFF')];
+    ov.real = [line('#D957AE', { lineWidth: 2 })];
+    ov.w200 = [line('#EAEEFF', { lineWidth: 2, lineStyle: 2 })];
+    sPrice = chart.addLineSeries({ color: '#EAEEFF', lineWidth: 2, priceLineVisible: false });
+    const fixed = () => ({ priceRange: { minValue: 0, maxValue: 100 } });
+    chart2 = LW.createChart($('#c-score'), { ...base, localization: { locale: 'de-DE', priceFormatter: p => nf(p) } });
+    sHist = chart2.addHistogramSeries({ priceLineVisible: false, lastValueVisible: false, autoscaleInfoProvider: fixed });
+    sScore = chart2.addLineSeries({ lineWidth: 2, priceLineVisible: false, autoscaleInfoProvider: fixed });
+    chart2.priceScale('right').applyOptions({ scaleMargins: { top: 0.06, bottom: 0 } });
+    [20, 40, 60, 80].forEach(v => sScore.createPriceLine({ price: v, color: 'rgba(142,151,198,.4)', lineWidth: 1, lineStyle: 2, axisLabelVisible: false }));
+    let lock = false;
+    const link = (a, b) => a.timeScale().subscribeVisibleLogicalRangeChange(r => { if (lock || !r) return; lock = true; b.timeScale().setVisibleLogicalRange(r); lock = false; });
+    link(chart, chart2); link(chart2, chart);
+    const hover = p => { if (R0) readout(p && p.time != null ? Math.round(p.time / 86400) - R0.first : cur()); };
+    chart.subscribeCrosshairMove(hover); chart2.subscribeCrosshairMove(hover);
+    $('#tools').addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.ov) { const on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', on); ov[b.dataset.ov].forEach(s => s.applyOptions({ visible: on })); }
+      else { document.querySelectorAll('#tools [data-y]').forEach(x => x.setAttribute('aria-pressed', x === b)); applyRange(); }
+    });
+    return true;
+  }
+  function applyRange() {
+    const b = document.querySelector('#tools [data-y][aria-pressed="true"]'), years = b ? +b.dataset.y : 0;
+    if (!years) { chart.timeScale().fitContent(); return; }
+    const to = T(R0.n - 1); chart.timeScale().setVisibleRange({ from: to - years * 365 * 86400, to });
+  }
+  function readout(i) {
+    if (!R0 || i < 0 || i >= R0.n) return;
+    const s = R0.total[i];
+    $('#readout').innerHTML = `<span>${dateDE(R0.first + i)}</span><span>Kurs <b>${usd(R0.price[i])}</b></span><span>Score <b style="color:${zc(s)}">${sc(s)}</b> ${s == null ? '' : MT.zone(s).name}</span><span>200-Wochen-MA <b>${usd(R0.X.sma1400[i])}</b></span><span>Realized Price <b>${usd(R0.X.realP[i])}</b></span>`;
+  }
+  function renderCharts(R) {
+    if (!chart) return;
+    const P = i => ({ time: T(i), value: R.price[i], color: scoreColor(R.total[i]) });
+    const SP = (i, a) => (R.total[i] == null ? { time: T(i) } : { time: T(i), value: R.total[i], color: scoreColor(R.total[i], a) });
+    if (R.n === drawnN) { const i = R.n - 1; sPrice.update(P(i)); sScore.update(SP(i, 1)); sHist.update(SP(i, 0.22)); return; }
+    const pts = [], s1 = [], s2 = [];
+    for (let i = i0; i < R.n; i++) { pts.push(P(i)); s1.push(SP(i, 1)); s2.push(SP(i, 0.22)); }
+    const mk = a => { const o = []; for (let i = i0; i < R.n; i++) o.push(a[i] == null ? { time: T(i) } : { time: T(i), value: a[i] }); return o; };
+    sPrice.setData(pts); sScore.setData(s1); sHist.setData(s2);
+    ov.w200[0].setData(mk(R.X.sma1400)); ov.real[0].setData(mk(R.X.realP));
+    ov.band[0].setData(mk(R.X.bandLo)); ov.band[1].setData(mk(R.X.bandHi));
+    ov.log[0].setData(mk(R.X.logLo)); ov.log[1].setData(mk(R.X.logMid)); ov.log[2].setData(mk(R.X.logHi));
+    const marks = MT.HALVINGS.filter(h => h >= R.first + i0).map(h => ({ time: h * 86400, position: 'aboveBar', color: '#8E97C6', shape: 'arrowDown', text: 'Halving' }))
+      .concat(R.events.pi.filter(k => k >= i0).map(k => ({ time: T(k), position: 'belowBar', color: ZC[4], shape: 'arrowUp', text: 'Pi Cycle' })))
+      .sort((a, b) => a.time - b.time);
+    sPrice.setMarkers(marks);
+    if (!drawnN) document.querySelectorAll('#tools [data-ov]').forEach(b => ov[b.dataset.ov].forEach(s => s.applyOptions({ visible: b.getAttribute('aria-pressed') === 'true' })));
+    drawnN = R.n; fitted = false; fitWhenVisible();
+  }
+  function fitWhenVisible() { if (chart && R0 && tab === 'analyse') requestAnimationFrame(() => requestAnimationFrame(() => { if (!fitted) { applyRange(); fitted = true; } markCharts(cur()); })); }
+  // Senkrechte Linie am Tag der Zeitmaschine
+  function markCharts(i) {
+    if (!chart || !chart.setCrosshairPosition) return;
+    if (vi == null) { try { chart.clearCrosshairPosition(); chart2.clearCrosshairPosition(); } catch (e) { /* Chart hat noch keine Größe */ } return; }
+    try { chart.setCrosshairPosition(R0.price[i], T(i), sPrice);
+    if (R0.total[i] != null) chart2.setCrosshairPosition(R0.total[i], T(i), sScore); } catch (e) { /* Chart hat noch keine Größe */ }
+  }
+
+  /* ---------- Zeitmaschine ---------- */
+  let heatN = 0;
+  function heat(R) {
+    const span = R.n - 1 - i0, stops = [], years = [];
+    for (let k = 0; k < 140; k++) stops.push(scoreColor(R.total[i0 + Math.round(k / 139 * span)]) + ' ' + (k / 139 * 100).toFixed(1) + '%');
+    $('#tm-range').style.background = `linear-gradient(90deg, ${stops.join(',')}) 9px 0 / calc(100% - 18px) 100% no-repeat, #222B58`;
+    for (let y = 2014; ; y += 2) { const i = MT.dn(y + '-01-01') - R.first; if (i >= R.n) break; if (i > i0) years.push(`<span style="left:${((i - i0) / span * 100).toFixed(2)}%">${y}</span>`); }
+    $('#tm-years').innerHTML = years.join(''); heatN = R.n;
+  }
+  function renderTM(i) {
+    const r = $('#tm-range'), s = R0.total[i], past = vi != null;
+    r.min = i0; r.max = R0.n - 1; r.value = i;
+    $('#tm-date').textContent = past ? dateDE(R0.first + i) : 'Heute, ' + dateDE(R0.first + i);
+    $('#tm-info').textContent = `Kurs ${usd(R0.price[i])}, Score ${sc(s)} ${s == null ? '' : MT.zone(s).name}`;
+    document.body.classList.toggle('past', past);
+    $('#when').textContent = past ? 'Stand der Zeitmaschine: ' + dateDE(R0.first + i) : '';
+  }
+  // Zeigt alles, was vom gewählten Tag abhängt
+  function show(lazy) {
+    const i = cur();
+    renderKos(R0, i); renderTM(i);
+    if (has3d) Kosmos.setIndex(i);
+    if (tab === 'analyse') { renderHero(R0, i); renderTables(R0, i); readout(i); if (!lazy) markCharts(i); }
+  }
+  function seek(i) { const hi = R0.n - 1; i = Math.max(i0, Math.min(hi, Math.round(i))); vi = i >= hi ? null : i; show(); }
+  function play(on) {
+    playing = on; const b = $('#tm-play'); b.textContent = on ? '❚❚' : '▶'; b.setAttribute('aria-label', on ? 'Anhalten' : 'Abspielen');
+    if (on) { if (vi == null) vi = i0; playPos = cur(); lastMs = 0; requestAnimationFrame(step); }
+  }
+  function step(ms) { // rund 300 Tage pro Sekunde, unabhängig von der Bildrate
+    if (!playing) return;
+    playPos += Math.min(100, ms - (lastMs || ms)) * 0.3; lastMs = ms;
+    if (playPos >= R0.n - 1) { seek(R0.n - 1); play(false); return; }
+    seek(playPos); requestAnimationFrame(step);
+  }
+  function bindTM() {
+    $('#tm-range').addEventListener('input', e => { play(false); seek(+e.target.value); });
+    $('#tm-play').addEventListener('click', () => { if (R0) play(!playing); });
+    $('#tm-back').addEventListener('click', () => { if (R0) { play(false); seek(cur() - 7); } });
+    $('#tm-fwd').addEventListener('click', () => { if (R0) { play(false); seek(cur() + 7); } });
+    $('#tm-now').addEventListener('click', () => { if (R0) { play(false); seek(R0.n - 1); } });
+    window.addEventListener('keydown', e => {
+      if (!R0 || tab === 'quant' || tab === 'labor' || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || e.altKey || e.ctrlKey || e.metaKey) return;
+      e.preventDefault(); play(false); seek(cur() + (e.key === 'ArrowLeft' ? -7 : 7));
+    });
+  }
+
+  /* ---------- Tabs ---------- */
+  /* ---------- Backtest: Kursverlauf nach jeder Zone ---------- */
+  const BT = { h: 365, from: '2013-01-01', res: false };
+  const chg = m => sgn((m - 1) * 100, 0);
+  const fx = m => Math.max(0, Math.min(100, (Math.log2(m) + 2) / 7 * 100));
+  function renderForward() {
+    const F = MT.forward(R0, MT.dn(BT.from), BT.h);
+    $('#fw').innerHTML = MT.ZONES.map(z => {
+      const s = F[z.id], c = ZC[z.id];
+      const mid = s.med == null ? '<div class="fw-track"></div><span class="fw-val"><small>zu wenige Tage</small></span>'
+        : `<div class="fw-track"><i class="fw-range" style="left:${fx(s.lo)}%;width:${fx(s.hi) - fx(s.lo)}%;background:${c}"></i><i class="fw-med" style="left:${fx(s.med)}%"></i></div><span class="fw-val"><b>${chg(s.med)}</b><small>im Plus: ${nf(s.pos * 100)} % der Tage</small></span>`;
+      return `<div class="fw-row"><span><span class="dot" style="--c:${c}"></span>${z.name}<small>${nf(s.n)} Tage${s.med == null ? '' : ', Spanne ' + chg(s.lo) + ' bis ' + chg(s.hi)}</small></span>${mid}</div>`;
+    }).join('') + `<div class="fw-row fw-axis"><span></span><div class="fw-ticks">${[0.5, 1, 2, 4, 8, 16].map(m => `<span style="left:${fx(m)}%">${m === 1 ? '±0 %' : chg(m)}</span>`).join('')}</div><span></span></div>`;
+  }
+  function renderTake() {
+    const F = MT.forward(R0, MT.dn('2013-01-01'), 365), pos = id => (F[id].pos == null ? '–' : nf(F[id].pos * 100) + ' %');
+    $('#bt-take').innerHTML = [
+      `Das Verlustrisiko sortiert der Score deutlich. Ein Jahr nach einem Tag in „Extrem günstig“ stand der Kurs an ${pos(4)} der Tage höher, nach „Überhitzt“ nur an ${pos(0)}.`,
+      'Die Rendite steigt dagegen nicht sauber mit dem Score. Der Median liegt in mehreren Zonen ähnlich hoch, der Unterschied steckt vor allem in der schlechten Hälfte der Fälle.',
+      'Die Datenbasis ist dünn. Die vielen Tage stammen im Kern aus vier Bodenphasen und überlappen sich stark. Die Prozentwerte sind deshalb unsicherer, als sie aussehen.'
+    ].map(t => `<li>${t}</li>`).join('');
+  }
+  function openBacktest() { if (tab !== 'quant' || !R0) return; renderForward(); renderTake(); Quant.render(R0); BT.res = true; }
+  function openLab() { if (tab !== 'labor' || !R0) return; Lab.render(R0); labDone = true; }
+  let labDone = false;
+  window.MTgo = i => { if (!R0) return; play(false); seek(i); location.hash = '#kosmos'; };
+  function bindBacktest() {
+    $('#fw-tools').addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b || !R0) return;
+      const attr = b.dataset.h ? 'h' : 'from'; BT[attr] = b.dataset.h ? +b.dataset.h : b.dataset.from;
+      $('#fw-tools').querySelectorAll(`[data-${attr}]`).forEach(x => x.setAttribute('aria-pressed', x === b));
+      renderForward();
+    });
+  }
+  function setTab(name) {
+    tab = name === 'analyse' || name === 'quant' || name === 'labor' ? name : 'kosmos';
+    $('#v-kosmos').hidden = tab !== 'kosmos'; $('#v-analyse').hidden = tab !== 'analyse'; $('#v-quant').hidden = tab !== 'quant'; $('#v-labor').hidden = tab !== 'labor'; $('#tm').hidden = tab === 'quant' || tab === 'labor';
+    document.querySelectorAll('.tabs a').forEach(a => a.setAttribute('aria-current', a.dataset.tab === tab ? 'page' : 'false'));
+    if (has3d) Kosmos.setActive(tab === 'kosmos');
+    if (R0) { show(true); fitWhenVisible(); openBacktest(); openLab(); }
+    window.scrollTo(0, 0);
+  }
+
+  /* ---------- Status ---------- */
+  function renderStatus() {
+    const st = MT.state.status, live = MT.state.raw && MT.state.raw.live;
+    $('#src').innerHTML = Object.keys(st).map(k => `<span><span class="dot" style="--c:${st[k].ok ? ZC[3] : ZC[0]}"></span>${k}${st[k].ok ? '' : ': nicht erreichbar (' + st[k].err + ')'}</span>`).join('');
+    if (live) { const sec = Math.round((Date.now() - live.at) / 1000); $('#stamp').textContent = 'Kurs aktualisiert vor ' + (sec < 90 ? sec + ' s' : Math.round(sec / 60) + ' min'); }
+    const bad = Object.keys(st).filter(k => !st[k].ok);
+    if (bad.length) message(bad.join(', ') + ' gerade nicht erreichbar. Der Score rechnet mit den übrigen Daten weiter.', false);
+    else if (!$('#msg').classList.contains('keep')) $('#msg').hidden = true;
+  }
+  function message(text, isErr, retry, keep) {
+    const m = $('#msg'); m.hidden = false; m.className = (isErr ? 'err' : '') + (keep ? ' keep' : ''); $('#msg-t').textContent = text; $('#msg-b').hidden = !retry;
+  }
+  function render(R) {
+    R0 = R; i0 = Math.max(0, R.total.findIndex(v => v != null)); if (R.n !== heatN) heat(R); fwd1 = MT.forward(R, MT.dn('2013-01-01'), 365);
+    renderTicker(R); renderHist(R); renderCharts(R);
+    if (has3d) Kosmos.setData(R);
+    show(); renderStatus(); if (!BT.res) openBacktest(); if (!labDone) openLab();
+  }
+
+  async function init() {
+    const charts = buildCharts();
+    has3d = Kosmos.init();
+    if (!has3d) document.querySelectorAll('.stage').forEach(s => { s.classList.add('off'); s.querySelector('.labels').textContent = 'Die 3D-Ansicht braucht WebGL und die Bibliothek Three.js. Beides ist hier gerade nicht verfügbar.'; });
+    if (!charts) message('Die Chart-Bibliothek konnte nicht geladen werden. Zahlen und Tabellen funktionieren trotzdem.', false, false, true);
+    bindTM(); bindBacktest(); Quant.init(); Lab.init();
+    $('#msg-b').addEventListener('click', () => location.reload());
+    window.addEventListener('hashchange', () => setTab(location.hash.slice(1)));
+    setTab(location.hash.slice(1));
+    try { render(await MT.loadAll()); }
+    catch (e) { message('Die Marktdaten konnten nicht geladen werden (' + (e.message || e) + '). Prüfe die Internetverbindung.', true, true, true); $('#stamp').textContent = 'Keine Daten'; return; }
+    setInterval(async () => { render(await MT.refreshLive()); }, 60000);
+    setInterval(() => { MT.loadAll().then(render).catch(() => {}); }, 30 * 60000);
+    setInterval(renderStatus, 5000);
+  }
+  init();
+})();
+</script>
+</body>
+</html>
